@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+export SERVER=%SERVER%
+export CLASSPATH=/var/task/*:/var/task/lib/*
+
+counter(){
+    java org.infinispan.creson.client.Interpreter -s ${SERVER} counter $@
+}
+
+list(){
+    java org.infinispan.creson.client.Interpreter -s ${SERVER} list $@
+}
+
+map(){
+    java org.infinispan.creson.client.Interpreter -s ${SERVER} map $@
+}
+
+barrier(){
+    java org.infinispan.creson.client.Interpreter -s ${SERVER} barrier $@
+}
+
+export -f counter
+export -f list
+export -f map
+export -f barrier
