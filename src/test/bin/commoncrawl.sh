@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-LINES=100
+LINES=32
 RANGE="-r 0-10000000"
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz | zcat | head -n ${LINES} > ${TMP_DIR}/index
 
