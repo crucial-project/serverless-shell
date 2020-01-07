@@ -5,9 +5,10 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-LINES=32
+INPUT=256
 RANGE="-r 0-10000000"
-curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz | zcat | head -n ${LINES} > ${TMP_DIR}/index
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
+    | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 
 ### 1 - average content size (stateless)
 
@@ -42,7 +43,7 @@ gathering(){
 ### 4 - count IPs
 # FIXME grep too old w. runtime=java8
 
-curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${LINES} > ${TMP_DIR}/index
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 
 count_ips(){
     LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
@@ -55,5 +56,4 @@ count_ips(){
 
 count_ips
 
-sshell "map -n ips values" | for i in $(cat ips); do echo $i; done | sort -rn | gnuplot -p -e 'plot "/dev/stdin"'
-
+# sshell "map -n ips values" | for i in $(cat ips); do echo $i; done | sort -rn | gnuplot -p -e 'plot "/dev/stdin"'

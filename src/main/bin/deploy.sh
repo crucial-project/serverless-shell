@@ -16,7 +16,7 @@ config() {
 }
 
 usage(){
-    echo "usage: -[create server|delete|([test|run] class)]"
+    echo "usage: -[create server|delete]"
     exit -1
 }
 
@@ -55,7 +55,7 @@ then
     aws lambda create-function \
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
     	--runtime java8 \
-    	--timeout 100 \
+    	--timeout 300 \
     	--memory-size 2048 \
     	--role ${AWS_ROLE} \
     	--handler ${AWS_LAMBDA_FUNCTION_HANDLER} \
