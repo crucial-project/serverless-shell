@@ -16,15 +16,12 @@ config() {
 }
 
 usage(){
-    echo "usage: -[create server|delete]"
+    echo "usage: -[create|delete]"
     exit -1
 }
 
 if [ $# -eq 0 ];
 then
-    usage
-elif [ "$1" == "-create" ] && [ $# -ne 2 ];
-then    
     usage
 fi
 
@@ -53,6 +50,7 @@ then
     cd ${TMP_DIR}/code && zip -r code.zip * && mv code.zip .. && cd ${PROJ_DIR} # FIXME
     # aws s3 cp ${TMP_DIR}/code.zip s3://${AWS_S3_BUCKET}/${AWS_S3_KEY}
     aws lambda create-function \
+	--region=${AWS_REGION} \
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
     	--runtime java8 \
     	--timeout 300 \
@@ -65,6 +63,7 @@ then
 elif [[ "$1" == "-delete" ]]
 then
     aws lambda delete-function \
+	--region=${AWS_REGION} \
 	--function-name ${AWS_LAMBDA_FUNCTION_NAME}	
 else
     usage

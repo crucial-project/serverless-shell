@@ -5,8 +5,8 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=256
-RANGE="-r 0-10000000"
+INPUT=3
+RANGE="-r 0-1000"
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 
@@ -54,6 +54,9 @@ count_ips(){
     sshell "map -n ips size"
 }
 
-count_ips
+# count_ips
 
 # sshell "map -n ips values" | for i in $(cat ips); do echo $i; done | sort -rn | gnuplot -p -e 'plot "/dev/stdin"'
+
+average
+

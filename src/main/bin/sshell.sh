@@ -6,4 +6,4 @@ TARGETDIR=${PROJDIR}/target
 
 CLASSPATH=${CLASSPATH}:${TARGETDIR}/*:${TARGETDIR}/lib/*
 
-java -Xshare:on eu.cloudbutton.shell.SShell $@
+java eu.cloudbutton.shell.SShell $@
