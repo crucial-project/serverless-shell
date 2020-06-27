@@ -6,4 +6,4 @@ TARGETDIR=${PROJDIR}/target
 
 CLASSPATH=${CLASSPATH}:${TARGETDIR}/*:${TARGETDIR}/lib/*
 
-java eu.cloudbutton.shell.SShell $@
+java org.crucial.shell.SShell $@

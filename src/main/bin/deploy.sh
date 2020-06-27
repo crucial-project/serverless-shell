@@ -4,7 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_DIR=${DIR}/../../..
 TARGET_DIR=${PROJ_DIR}/target
 TMP_DIR=/tmp
-CONFIG_FILE=${DIR}/exp.config
+CONFIG_FILE=${DIR}/config.properties
 
 config() {
     if [ $# -ne 1 ]; then
@@ -16,11 +16,14 @@ config() {
 }
 
 usage(){
-    echo "usage: -[create|delete]"
+    echo "usage: -[create server|delete]"
     exit -1
 }
 
 if [ $# -eq 0 ];
+then
+    usage
+elif [ "$1" == "-create" ] && [ $# -ne 2 ];
 then
     usage
 fi
@@ -45,8 +48,8 @@ then
     mkdir -p ${CODE_DIR}/lib
     cp -Rf ${TARGET_DIR}/lib ${CODE_DIR}
     cp -Rf ${TARGET_DIR}/classes/* ${CODE_DIR}/
-    sed s/%SERVER%/$2/g ${CODE_DIR}/aliases.sh.tmpl > ${CODE_DIR}/aliases.sh
     cp -Rf ${TARGET_DIR}/test-classes/* ${CODE_DIR}/
+    sed s/%SERVER%/$2/g ${CODE_DIR}/aliases.sh.tmpl > ${CODE_DIR}/aliases.sh
     cd ${TMP_DIR}/code && zip -r code.zip * && mv code.zip .. && cd ${PROJ_DIR} # FIXME
     # aws s3 cp ${TMP_DIR}/code.zip s3://${AWS_S3_BUCKET}/${AWS_S3_KEY}
     aws lambda create-function \
@@ -59,7 +62,7 @@ then
     	--handler ${AWS_LAMBDA_FUNCTION_HANDLER} \
     	--zip-file fileb://${TMP_DIR}/code.zip  > ${TMP_DIR}/log.dat
     cat ${CONFIG_FILE}
-    echo "aws.lambda.function.arn=$(grep FunctionArn ${TMP_DIR}/log.dat  | awk -F": " '{print $2}' | sed s,[\"\,],,g)"
+    # echo "aws.lambda.function.arn=$(grep FunctionArn ${TMP_DIR}/log.dat  | awk -F": " '{print $2}' | sed s,[\"\,],,g)"
 elif [[ "$1" == "-delete" ]]
 then
     aws lambda delete-function \

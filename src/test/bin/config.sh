@@ -4,7 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_DIR=${DIR}/../../..
 BIN_DIR=${PROJ_DIR}/src/main/bin
 TMP_DIR=/tmp
-DEBUG=0
+DEBUG=1
 
 sshell(){
     if [[ "$DEBUG" == "1" ]];

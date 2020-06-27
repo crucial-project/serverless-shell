@@ -1,24 +1,24 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>eu.cloudbutton</groupId>
+    <groupId>org.crucial</groupId>
     <artifactId>serverless-shell</artifactId>
-    <name>infinispan-creson-shell</name>
-    <description>A shell program for CRESON.</description>
-    <version>0.1.SNAPSHOT</version>
+    <name>serverless-shell</name>
+    <description>A shell .</description>
+    <version>1.0</version>
 
     <dependencies>
 
         <dependency>
-            <groupId>eu.cloudbutton</groupId>
-            <artifactId>serverless-executor-service</artifactId>
-            <version>0.1.Final</version>
+            <groupId>org.crucial</groupId>
+            <artifactId>executor</artifactId>
+            <version>1.0</version>
         </dependency>
 
         <dependency>
-            <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-creson-client</artifactId>
-            <version>9.4.16.Final</version>
+            <groupId>org.crucial</groupId>
+            <artifactId>dso-client</artifactId>
+            <version>1.0</version>
         </dependency>
 
 
@@ -75,7 +75,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>eu.cloudbutton.shell.SShell</mainClass>
+                            <mainClass>org.crucial.shell.SShell</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

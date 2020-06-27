@@ -1,12 +1,13 @@
-package eu.cloudbutton.shell;
+package org.crucial.shell;
 
-import eu.cloudbutton.executor.Config;
-import eu.cloudbutton.executor.lambda.AWSLambdaExecutorService;
+import org.crucial.executor.Config;
+import org.crucial.executor.aws.AWSLambdaExecutorService;
 
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.Future;

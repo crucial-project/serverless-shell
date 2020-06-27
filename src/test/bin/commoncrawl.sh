@@ -43,8 +43,7 @@ gathering(){
 ### 4 - count IPs
 # FIXME grep too old w. runtime=java8
 
-curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${INPUT} > ${TMP_DIR}/index
-
+# curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 count_ips(){
     LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
     BARRIER=$(uuid)
@@ -54,9 +53,4 @@ count_ips(){
     sshell "map -n ips size"
 }
 
-# count_ips
-
-# sshell "map -n ips values" | for i in $(cat ips); do echo $i; done | sort -rn | gnuplot -p -e 'plot "/dev/stdin"'
-
 average
-
