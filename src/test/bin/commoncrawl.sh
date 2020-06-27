@@ -53,4 +53,4 @@ count_ips(){
     sshell "map -n ips size"
 }
 
-average
+sshell "ls"
