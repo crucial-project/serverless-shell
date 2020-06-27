@@ -5,6 +5,7 @@ PROJ_DIR=${DIR}/../../..
 TARGET_DIR=${PROJ_DIR}/target
 TMP_DIR=/tmp
 CONFIG_FILE=${DIR}/config.properties
+SERVER=localhost:11222
 
 config() {
     if [ $# -ne 1 ]; then
@@ -16,16 +17,24 @@ config() {
 }
 
 usage(){
-    echo "usage: -[create server|delete]"
+    echo "usage: -[create [DSO server]|delete]"
     exit -1
 }
 
 if [ $# -eq 0 ];
 then
     usage
-elif [ "$1" == "-create" ] && [ $# -ne 2 ];
+elif [ "$1" == "-create" ];
 then
-    usage
+    if [ $# -gt 2 ];
+    then
+	usage
+    else
+	if [ $# -eq 2 ];
+	then
+	    SERVER=$2
+	fi
+    fi
 fi
 
 AWS_REGION=$(config aws.region)
@@ -49,7 +58,7 @@ then
     cp -Rf ${TARGET_DIR}/lib ${CODE_DIR}
     cp -Rf ${TARGET_DIR}/classes/* ${CODE_DIR}/
     cp -Rf ${TARGET_DIR}/test-classes/* ${CODE_DIR}/
-    sed s/%SERVER%/$2/g ${CODE_DIR}/aliases.sh.tmpl > ${CODE_DIR}/aliases.sh
+    sed s/%SERVER%/${SERVER}/g ${CODE_DIR}/aliases.sh.tmpl > ${CODE_DIR}/aliases.sh
     cd ${TMP_DIR}/code && zip -r code.zip * && mv code.zip .. && cd ${PROJ_DIR} # FIXME
     # aws s3 cp ${TMP_DIR}/code.zip s3://${AWS_S3_BUCKET}/${AWS_S3_KEY}
     aws lambda create-function \
