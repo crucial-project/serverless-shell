@@ -5,10 +5,12 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=3
-RANGE="-r 0-1000"
-curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
-    | zcat | head -n ${INPUT} > ${TMP_DIR}/index
+INPUT=20
+RANGE="-r 0-100000000"
+# curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
+#     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
+    | zcat | head -n ${INPUT} > ${TMP_DIR}/index-wat
 
 ### 1 - average content size (stateless)
 
@@ -53,4 +55,15 @@ count_ips(){
     sshell "map -n ips size"
 }
 
-sshell "ls"
+domaincount(){
+    while read l; do
+	sshell "curl -s ${RANGE} ${CCBASE}/${l}
+      	| zcat -q | tr \",\" \"\n\" 
+	| sed 's/url\"/& /g' 
+	| sed 's/:\"/& /g' 
+	| grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}'  | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r" &
+    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
+    wait
+}
+
+domaincount

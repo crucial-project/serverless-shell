@@ -6,4 +6,4 @@ TARGETDIR=${PROJDIR}/target
 
 export CLASSPATH=${CLASSPATH}:${TARGETDIR}/*:${TARGETDIR}/lib/*
 
-java org.crucial.shell.SShell $@
+java -Xmx64m org.crucial.shell.SShell $@
