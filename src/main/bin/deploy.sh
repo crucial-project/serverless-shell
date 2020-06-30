@@ -16,26 +16,15 @@ config() {
 }
 
 usage(){
-    echo "usage: -[create [DSO server]|delete]"
+    echo "usage: -[create|delete]"
     exit -1
 }
 
 SERVER=$(config crucial.server)
 
-if [ $# -eq 0 ];
+if [ $# -ne 1 ];
 then
     usage
-elif [ "$1" == "-create" ];
-then
-    if [ $# -gt 2 ];
-    then
-	usage
-    else
-	if [ $# -eq 2 ];
-	then
-	    SERVER=$2
-	fi
-    fi
 fi
 
 AWS_REGION=$(config aws.region)
