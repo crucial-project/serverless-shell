@@ -47,7 +47,7 @@ then
     mkdir -p ${CODE_DIR}/lib
     cp -Rf ${TARGET_DIR}/lib ${CODE_DIR}
     cp -Rf ${TARGET_DIR}/classes/* ${CODE_DIR}/
-    cp -Rf ${TARGET_DIR}/test-classes/* ${CODE_DIR}/
+    # cp -Rf ${TARGET_DIR}/test-classes/* ${CODE_DIR}/
     sed s/%SERVER%/${SERVER}/g ${CODE_DIR}/aliases.sh.tmpl > ${CODE_DIR}/aliases.sh
     cd ${TMP_DIR}/code && zip -r code.zip * && mv code.zip .. && cd ${PROJ_DIR} # FIXME
     # aws s3 cp ${TMP_DIR}/code.zip s3://${AWS_S3_BUCKET}/${AWS_S3_KEY}
