@@ -5,8 +5,8 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=3
-RANGE="-r 0-100000000"
+INPUT=100
+RANGE="-r 0-1000000"
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
@@ -50,10 +50,12 @@ count_ips(){
     LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
     BARRIER=$(uuid)
     sshell "map -n ips clear"
-    cat ${TMP_DIR}/index | parallel -I,, --env sshell "sshell --async \"map -n ips mergeAll \\\$(curl -s ${CCBASE}/,, | zcat | tr '[:space:]' '[\n*]' | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" | sort | uniq -c | sort -bnr | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    cat ${TMP_DIR}/index | parallel -I,, --env sshell "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, | zcat | tr '[:space:]' '[\n*]' | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" | sort | uniq -c | sort -bnr | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     sshell "map -n ips size"
 }
+
+## 5 - compute the popularity of each domain
 
 domaincount(){
     while read l; do
@@ -67,5 +69,6 @@ domaincount(){
 }
 
 # average_stateful
-gathering
+# gathering
+count_ips
 

@@ -66,7 +66,7 @@ then
 	--region=${AWS_REGION} \
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
     	--runtime java8 \
-    	--timeout 300 \
+    	--timeout 60 \
     	--memory-size 2048 \
     	--role ${AWS_ROLE} \
     	--handler ${AWS_LAMBDA_FUNCTION_HANDLER} \
