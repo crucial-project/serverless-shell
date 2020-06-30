@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_DIR=${DIR}/../../..
 TARGET_DIR=${PROJ_DIR}/target
-TMP_DIR=/tmp
+TMP_DIR=/tmp/$(-uuid)
 CONFIG_FILE=${DIR}/config.properties
 
 config() {
