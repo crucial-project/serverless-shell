@@ -18,3 +18,5 @@ sshell(){
 export BIN_DIR
 export DEBUG
 export -f sshell
+
+mkdir -p ${TMP_DIR}
