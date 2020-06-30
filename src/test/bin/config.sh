@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_DIR=${DIR}/../../..
 BIN_DIR=${PROJ_DIR}/src/main/bin
-TMP_DIR=/tmp
+TMP_DIR=/tmp/$(whoami)
 DEBUG=1
 
 sshell(){
