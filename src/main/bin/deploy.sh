@@ -5,7 +5,6 @@ PROJ_DIR=${DIR}/../../..
 TARGET_DIR=${PROJ_DIR}/target
 TMP_DIR=/tmp
 CONFIG_FILE=${DIR}/config.properties
-SERVER=localhost:11222
 
 config() {
     if [ $# -ne 1 ]; then
@@ -20,6 +19,8 @@ usage(){
     echo "usage: -[create [DSO server]|delete]"
     exit -1
 }
+
+SERVER=$(config crucial.server)
 
 if [ $# -eq 0 ];
 then

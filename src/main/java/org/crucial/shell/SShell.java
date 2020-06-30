@@ -29,6 +29,8 @@ public class SShell {
     public static void main(String[] args) {
 
         Properties properties = System.getProperties();
+	boolean asynchronous = false;
+	
         try (InputStream is = SShell.class.getClassLoader().getResourceAsStream(Config.CONFIG_FILE)) {
             properties.load(is);
         } catch (IOException e) {
@@ -36,6 +38,7 @@ public class SShell {
         }
 
         if (args.length>0 && args[0].equals(ASYNC_FLAG)){
+	    asynchronous = true;
             properties.setProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC,"true");
         }
 
@@ -78,16 +81,19 @@ public class SShell {
             return ret;
         });
 
-        try {
-            String[] ret = future.get();
-            if(ret!=null) {
-                System.err.print(ANSI_RED + ret[1] + ANSI_RESET);
-                System.out.print(ret[0]);
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-        System.exit(0);
+	try {
+	    String[] ret = future.get();
+	    if(ret!=null) {
+		System.err.print(ANSI_RED + ret[1] + ANSI_RESET);
+		System.out.print(ret[0]);
+	    }
+	} catch (InterruptedException | ExecutionException e) { // FIXME
+	    if ( !(asynchronous && e instanceof ExecutionException) ) {
+		e.printStackTrace();
+	    }
+	}
+
+	System.exit(0);
     }
 
 }

@@ -5,10 +5,10 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=20
+INPUT=3
 RANGE="-r 0-100000000"
-# curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
-#     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
+    | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index-wat
 
@@ -66,4 +66,6 @@ domaincount(){
     wait
 }
 
-domaincount
+# average_stateful
+gathering
+
