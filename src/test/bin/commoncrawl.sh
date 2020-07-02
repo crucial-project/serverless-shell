@@ -68,16 +68,19 @@ domaincount(){
     wait
 }
 
-## 6 - terasort (stateless)
+## 7 - terasort: sort key,value dataset by key (stateless)
 
 terasort(){
+
   # file placement
   sshell "split -l $KVRANGE/$NBNODES segment"
+
   # partitioning
   sshell "awk '{$SUBSET = $KVRANGE/$NBNODES}' ; iter=0 ; val=0"
   while val <= $HIGHVAL do
-    sshell "partitionarray[iter,0] = val ; val = val+$SUBSET ; partitionarray[iter,1] = val ; iter = iter + 1"
+    sshell "partitionarray[iter,0] = val ; val = val+$SUBSET ; partitionarray[iter,1] = val ; iter = $((iter+1))"
   done
+
   #map
   for iter in $numnodes
   do
@@ -92,7 +95,7 @@ terasort(){
       for k in $NBNODES
       do
         if [ key > partitionarray[k,0] -a key < partitionarray[k,1] ]; then
-          sshell "partitionkv[k,index] = key ; index = index + 1 ; echo -n partitionkv[k,index] | echo "," >> $filemapk"
+          sshell "partitionkv[k,index] = key ; index=$((index+1)) ; echo -n partitionkv[k,index] | echo "," >> $filemapk"
         fi
       done
     done
@@ -101,7 +104,7 @@ terasort(){
   #shuffle
   for i in $NBNODES do
     for k in $NBNODES do
-      sshell "index = 0 ; nodeskv[k,index] = partitionkv[k,index] ; index = index + 1 ; size[k] = index"
+      sshell "index = 0 ; nodeskv[k,index] = partitionkv[k,index] ; index=$((index+1)) ; size[k] = index"
     done
   done
 
@@ -109,7 +112,6 @@ terasort(){
   for k in $NBNODES do
     sshell "IFS=$'\n' sortedkv=($(sort <<< "${nodeskv[k,*]}")); unset IFS"
   done
-
 }
 
 # average_stateful
