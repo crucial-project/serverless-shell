@@ -68,6 +68,50 @@ domaincount(){
     wait
 }
 
+## 6 - terasort (stateless)
+
+terasort(){
+  # file placement
+  sshell "split -l $KVRANGE/$NBNODES segment"
+  # partitioning
+  sshell "awk '{$SUBSET = $KVRANGE/$NBNODES}' ; iter=0 ; val=0"
+  while val <= $HIGHVAL do
+    sshell "partitionarray[iter,0] = val ; val = val+$SUBSET ; partitionarray[iter,1] = val ; iter = iter + 1"
+  done
+  #map
+  for iter in $numnodes
+  do
+    # we read each line of each k file
+    sshell "input = $filek ; index = 0"
+    while IFS=read  -r line
+    do
+      sshell "echo $line"
+      # extract key of key-value tuple on each line
+      sshell "key=$( cut -d ',' -f 1)"
+       # store key in each partition
+      for k in $NBNODES
+      do
+        if [ key > partitionarray[k,0] -a key < partitionarray[k,1] ]; then
+          sshell "partitionkv[k,index] = key ; index = index + 1 ; echo -n partitionkv[k,index] | echo "," >> $filemapk"
+        fi
+      done
+    done
+  done
+
+  #shuffle
+  for i in $NBNODES do
+    for k in $NBNODES do
+      sshell "index = 0 ; nodeskv[k,index] = partitionkv[k,index] ; index = index + 1 ; size[k] = index"
+    done
+  done
+
+  #reduce
+  for k in $NBNODES do
+    sshell "IFS=$'\n' sortedkv=($(sort <<< "${nodeskv[k,*]}")); unset IFS"
+  done
+
+}
+
 # average_stateful
 # gathering
 count_ips
