@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=100
+INPUT=1000
 RANGE="-r 0-1000000"
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
@@ -65,7 +65,41 @@ domaincount(){
 	| sed 's/:\"/& /g' 
 	| grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}'  | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r" &
     done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
-    wait
+}
+
+##5 - compute the popularity of each domain (stateful: merge all)
+
+domaincount_stateful_mergeall(){
+  while read l; do
+	sshell "curl -s ${RANGE} ${CCBASE}/${l}
+      	| zcat -q | tr \",\" \"\n\"
+	| sed 's/url\"/& /g'
+	| sed 's/:\"/& /g'
+	| grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}'  | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r" &
+    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
+
+}
+
+## 5 - compute the popularity of each domain (stateful)
+
+domaincount_stateful(){
+  sshell "counter -n average reset"
+  # declare a counter for JOB identifier
+  sshell "counter -n id -c -1"
+  while read l; do
+    # increment counter for jobs
+    sshell "counter -n id increment -i"
+    # each job works on a specific range of the array to be computed, an offset is calculated for each job
+	  sshell "curl -s ${RANGE} ${CCBASE}/${l}
+    | zcat -q | tr \",\" \"\n\"
+	  | sed 's/url\"/& /g'
+	  | sed 's/:\"/& /g'
+	  | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}'  | awk '{for(i=1;i<=NF;i++) result[\id*NF+$i]++} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r" &
+  done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
+  wait
+  # concatenate results array
+  # perform a global sorting
+
 }
 
 ## 7 - terasort: sort key,value dataset by key (stateless)
