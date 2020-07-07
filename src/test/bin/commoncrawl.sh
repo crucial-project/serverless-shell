@@ -5,7 +5,9 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=1000
+INPUT=100
+STEP=100
+NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
@@ -70,13 +72,49 @@ domaincount(){
 ##5 - compute the popularity of each domain (stateful: merge all)
 
 domaincount_stateful_mergeall(){
-  while read l; do
-	sshell "curl -s ${RANGE} ${CCBASE}/${l}
+  # declare a counter for JOB identifier
+  sshell "counter -n average reset"
+  sshell "counter -n idjob -c -1"
+  # download wat.paths.gz un unzip it
+  sshell "curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz"
+  sshell "gunzip wat.paths.gz"
+  # Each job downloads a chunk of wat.paths
+  for $id in $NUMJOBS; do
+    # increment counter for jobs
+    sshell "counter -n idjob increment -i"
+    sshell "head -$($INPUT*$idjob) wat.paths
+    | tail -$INPUT > ${TMP_DIR}/index-wat-chunk$idjob"
+    while read l; do
+      # a) Download metadata, b) unzip file, c) Search patterns "url" and "http", d) shorten url and keep domain name
+      # e) count number of occurrences per domain
+      sshell "curl -s ${RANGE} ${CCBASE}/${l}
       	| zcat -q | tr \",\" \"\n\"
-	| sed 's/url\"/& /g'
-	| sed 's/:\"/& /g'
-	| grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}'  | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r" &
-    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
+	      | sed 's/url\"/& /g'
+	      | sed 's/:\"/& /g'
+	      | grep \"url\"
+	      | grep http
+	      | awk '{print \$3}'
+	      | sed s/[\\\",]//g
+	      | awk -F/ '{print \$3}'
+	      | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}'" &
+    done < ${TMP_DIR}/index-wat-chunk$id | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}'
+  done
+  wait
+  # concatenate files
+  sshell "touch ${TMP_DIR}/index-wat"
+  sshell "cat ${TMP_DIR}/index-wat-chunk* >> ${TMP_DIR}/index-wat"
+  # Merge all: map -n <name> mergeAll <filename> -1 key -2 <function(sum,multiply,divide)>
+  sshell "map -n domains clear"
+  cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll \\\cat ${TMP_DIR}/index-wat -1 $2 -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+  sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+  sshell "map -n domains size"
+  # sort
+  sshell "cat ${TMP_DIR}/index-wat | sort -k 2 -n -r
+  # for iter in numjobs:64
+  # do
+  #   M[iter-1].mergeAll(M[iter], Sum)
+  # done
+  # sort
 
 }
 
