@@ -109,7 +109,7 @@ domaincount_stateful_mergeall(){
   sshell barrier -n ${BARRIER} -p ${LAMBDA} await
   sshell "map -n domains size"
   # sort
-  sshell "cat ${TMP_DIR}/index-wat | sort -k 2 -n -r
+  sshell "cat ${TMP_DIR}/index-wat | sort -k 2 -n -r"
   # for iter in numjobs:64
   # do
   #   M[iter-1].mergeAll(M[iter], Sum)
@@ -187,6 +187,6 @@ terasort(){
 }
 
 # average_stateful
-# gathering
-count_ips
+gathering
+#count_ips
 
