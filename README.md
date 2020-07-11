@@ -10,7 +10,7 @@ Work is in progress to include other serverless services (e.g., knative).
 
 	git clone https://github.com/crucial-project/serverless-shell
 	mvn install -DskipTests -f serverless-shell # the DSO and executor must have been installed previously
-	export ACCOUNT=%MY_AWS_ACCOUNT%
+	export ACCOUNT=%AWS_ACCOUNT_ID%
 	export ROLE_NAME=%AWS_IAM_ROLE_NAME% # the role must have access to AWS Lambda
 	cat serverless-shell/src/main/bin/config.properties.tmpl | sed s/ACCOUNT/${ACCOUNT}/g | sed s/ROLE_NAME/${ROLE_NAME}/g > serverless-shell/src/main/bin/config.properties
 	serverless-shell/src/main/bin/deploy.sh -create # upload the function image to AWS Lambda 
