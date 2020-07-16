@@ -52,7 +52,15 @@ count_ips(){
     LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
     BARRIER=$(uuid)
     sshell "map -n ips clear"
-    cat ${TMP_DIR}/index | parallel -I,, --env sshell "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, | zcat | tr '[:space:]' '[\n*]' | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" | sort | uniq -c | sort -bnr | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    cat ${TMP_DIR}/index 
+    | parallel -I,, --env sshell "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, 
+    | zcat 
+    | tr '[:space:]' '[\n*]' 
+    | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" 
+    | sort 
+    | uniq -c 
+    | sort -bnr 
+    | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     sshell "map -n ips size"
 }
@@ -65,7 +73,13 @@ domaincount(){
       	| zcat -q | tr \",\" \"\n\" 
 	| sed 's/url\"/& /g' 
 	| sed 's/:\"/& /g' 
-	| grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}'  | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r" &
+	| grep \"url\" 
+  | grep http 
+  | awk '{print \$3}' 
+  | sed s/[\\\",]//g 
+  | awk -F/ '{print \$3}'  
+  | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}' 
+  | sort -k 2 -n -r" &
     done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
 }
 
@@ -80,28 +94,29 @@ domaincount_stateful_mergeall(){
         # e) count number of occurrences per domain
         sshell "curl -s ${RANGE} ${CCBASE}/${l}
       	| zcat -q | tr \",\" \"\n\"
-	    | sed 's/url\"/& /g'
-	    | sed 's/:\"/& /g'
-	    | grep \"url\"
-	    | grep http
-	    | awk '{print \$3}'
-	    | sed s/[\\\",]//g
-	    | awk -F/ '{print \$3}'
-	    | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}'" &
-    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domain_stats
-  wait
-  # Merge all: map -n <name> mergeAll <filename> -1 key -2 <function(sum,multiply,divide)>
-  sshell "map -n domains clear"
-  cat domain_stats | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll \\\cat domain_stats -1 $2 -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
-  sshell barrier -n ${BARRIER} -p ${LAMBDA} await
-  sshell "map -n domains size"
-  # sort
-  sshell "cat ${TMP_DIR}/index-wat | sort -k 2 -n -r"
-  # for iter in numjobs:64
-  # do
-  #   M[iter-1].mergeAll(M[iter], Sum)
-  # done
-  # sort
+	      | sed 's/url\"/& /g'
+	      | sed 's/:\"/& /g'
+	      | grep \"url\"
+	      | grep http
+	      | awk '{print \$3}'
+	      | sed s/[\\\",]//g
+	      | awk -F/ '{print \$3}'
+	      | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}'" &
+    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domainstats
+    wait
+    # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
+    sshell "map -n domains clear"
+    cat domainstats 
+    | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll -1 $2 -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+    sshell "map -n domains size"
+    # sort
+    sshell "cat domainstats | sort -k 2 -n -r > domainstats_sorted"
+    # for iter in numjobs:64
+    # do
+    #   M[iter-1].mergeAll(M[iter], Sum)
+    # done
+    # sort
 
 }
 
