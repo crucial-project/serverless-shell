@@ -107,7 +107,8 @@ domaincount_stateful_mergeall(){
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
     sshell "map -n domains clear"
     cat domainstats 
-    | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll -1 $2 -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll
+    | awk '{s=s\\\" -1 \\\"\\\$2\\\",\\\"\\\$1}END{print s}')  -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     sshell "map -n domains size"
     # sort
