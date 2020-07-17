@@ -190,6 +190,7 @@ terasort(){
 }
 
 # average_stateful
-gathering
+#gathering
 #count_ips
+domaincount_stateful_mergeall
 
