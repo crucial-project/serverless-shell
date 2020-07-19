@@ -52,8 +52,7 @@ count_ips(){
     LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
     BARRIER=$(uuid)
     sshell "map -n ips clear"
-    cat ${TMP_DIR}/index 
-    | parallel -I,, --env sshell "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, 
+    cat ${TMP_DIR}/index | parallel -I,, --env sshell "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, 
     | zcat 
     | tr '[:space:]' '[\n*]' 
     | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" 
@@ -103,14 +102,13 @@ domaincount_stateful_mergeall(){
 	      | awk -F/ '{print \$3}'
 	      | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}'" &
     done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domainstats
-    wait
+    #wait
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
-    sshell "map -n domains clear"
-    cat domainstats 
-    | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll
+    #sshell "map -n domains clear"
+    cat domainstats | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll
     | awk '{s=s\\\" -1 \\\"\\\$2\\\",\\\"\\\$1}END{print s}')  -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
-    sshell barrier -n ${BARRIER} -p ${LAMBDA} await
-    sshell "map -n domains size"
+    #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+    #sshell "map -n domains size"
     # sort
     sshell "cat domainstats | sort -k 2 -n -r > domainstats_sorted"
     # for iter in numjobs:64
@@ -148,13 +146,13 @@ domaincount_stateful(){
 terasort(){
 
   # file placement
-  sshell "split -l $KVRANGE/$NBNODES segment"
+  #sshell "split -l $KVRANGE/$NBNODES segment"
 
   # partitioning
-  sshell "awk '{$SUBSET = $KVRANGE/$NBNODES}' ; iter=0 ; val=0"
-  while val <= $HIGHVAL do
+  #sshell "awk '{$SUBSET = $KVRANGE/$NBNODES}' ; iter=0 ; val=0"
+  #while val <= $HIGHVAL do
     sshell "partitionarray[iter,0] = val ; val = val+$SUBSET ; partitionarray[iter,1] = val ; iter = $((iter+1))"
-  done
+  #done
 
   #map
   for iter in $numnodes
@@ -177,20 +175,20 @@ terasort(){
   done
 
   #shuffle
-  for i in $NBNODES do
-    for k in $NBNODES do
-      sshell "index = 0 ; nodeskv[k,index] = partitionkv[k,index] ; index=$((index+1)) ; size[k] = index"
-    done
-  done
+  #for i in $NBNODES do
+  #  for k in $NBNODES do
+  #    sshell "index = 0 ; nodeskv[k,index] = partitionkv[k,index] ; index=$((index+1)) ; size[k] = index"
+  #  done
+  #done
 
   #reduce
-  for k in $NBNODES do
-    sshell "IFS=$'\n' sortedkv=($(sort <<< "${nodeskv[k,*]}")); unset IFS"
-  done
+  #for k in $NBNODES do
+  #  sshell "IFS=$'\n' sortedkv=($(sort <<< "${nodeskv[k,*]}")); unset IFS"
+  #done
 }
 
 # average_stateful
 #gathering
-#count_ips
-domaincount_stateful_mergeall
+count_ips
+#domaincount_stateful_mergeall
 
