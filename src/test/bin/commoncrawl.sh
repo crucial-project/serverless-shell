@@ -107,17 +107,14 @@ domaincount_stateful_mergeall(){
     #wait
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
     #sshell "map -n domains clear"
-
     echo "Merge all domain counts ..."
     LAMBDA=$(($(wc -l domainstatspar | awk '{print $1}')+1))
     echo "barrier ID: $BARRIER"
     echo "lambda: $LAMBDA"
     #cat domainstatspar | parallel -n0 --env sshell sshell --async barrier -n ${BARRIER} -p ${LAMBDA}  await
-    cat domainstats | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll -1 
+    cat domainstatspar | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll -1 
     | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}' -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
-    #| awk '{s=s\\\" -1 \\\"\\\$2\\\",\\\"\\\$1}END{print s}'  -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
-    #| awk '{s=s\\\" -1 \\\"\\\$2\\\",\\\"\\\$1}END{print s}')  -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
-    #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+    sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     #sshell "map -n domains size"
     # sort
     #sshell "cat domainstats | sort -k 2 -n -r > domainstats_sorted"
