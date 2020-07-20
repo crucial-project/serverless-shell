@@ -113,7 +113,8 @@ domaincount_stateful_mergeall(){
     echo "barrier ID: $BARRIER"
     echo "lambda: $LAMBDA"
     #cat domainstatspar | parallel -n0 --env sshell sshell --async barrier -n ${BARRIER} -p ${LAMBDA}  await
-    cat domainstats | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll -1 $1 -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    cat domainstats | parallel -I,, --env sshell "sshell --async \"map -n domains mergeAll -1 
+    | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}' -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     #| awk '{s=s\\\" -1 \\\"\\\$2\\\",\\\"\\\$1}END{print s}'  -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     #| awk '{s=s\\\" -1 \\\"\\\$2\\\",\\\"\\\$1}END{print s}')  -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
