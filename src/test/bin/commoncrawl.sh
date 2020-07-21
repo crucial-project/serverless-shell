@@ -89,6 +89,8 @@ domaincount_stateful_mergeall(){
     #sshell "counter -n average reset"
     #sshell "counter -n idjob -c -1"
     BARRIER=$(uuid)
+    #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
+    LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
     echo "Parse WAT ..."
     while read l; do
         # a) Download metadata, b) unzip file, c) Search patterns "url" and "http", d) shorten url and keep domain name
