@@ -121,12 +121,6 @@ domaincount_stateful_mergeall(){
     # sort
     echo "Sort domains"
     cat domainstats | sort -k 2 -n -r > domainstats.sorted
-    #sshell "cat domainstats | sort -k 2 -n -r"
-    # for iter in numjobs:64
-    # do
-    #   M[iter-1].mergeAll(M[iter], Sum)
-    # done
-    # sort
 
 }
 
