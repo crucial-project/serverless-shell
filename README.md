@@ -51,5 +51,5 @@ Once this is done, indicate the entry point of the DSO layer in `config.properti
 
 The syntax to access a data type is of the form `type -n name [operation]`, where `type` is the data type and `name` its storage key in the DSO layer.
 For instance, `counter -n my_counter -i 1` increment by 1 the counter named `my_counter`.
-The data types currently available are listed under `serverless-shell/src/main/bin/aliases.sh.tmpl`
+The data types currently available are listed under `serverless-shell/src/main/bin/aliases.sh.tmpl`. The template file `aliases.sh.tmpl` needs to be renamed appropriately after having changed the placeholder `SERVER`.
 
