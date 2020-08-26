@@ -119,8 +119,9 @@ domaincount_stateful_mergeall(){
     aws s3 mv domainstats s3://amaheo/domainstats
     # sort
     echo "Sort domains"
-    sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r"
-    #sshell "cat s3://amaheo/domainstats | sort -k 2 -n -r > domainstats.sorted"
+    sshell "aws s3 cp s3://amaheo/domainstats ."
+    sshell "cat domainstats | sort -k 2 -n -r > domainstats.sorted"
+    #sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r"
 
 }
 
