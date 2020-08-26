@@ -21,6 +21,7 @@ usage(){
 }
 
 SERVER=$(config crucial.server)
+echo "SERVER: $SERVER"
 
 if [ $# -ne 1 ];
 then

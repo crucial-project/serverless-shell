@@ -86,8 +86,6 @@ domaincount(){
 
 domaincount_stateful_mergeall(){
     # declare a counter for JOB identifier
-    #sshell "counter -n average reset"
-    #sshell "counter -n idjob -c -1"
     BARRIER=$(uuid)
     #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
@@ -109,7 +107,6 @@ domaincount_stateful_mergeall(){
     wait
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
     sshell "map -n domainstats clear"
-    echo "Merge all domainstats counts ..."
     LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     echo "barrier ID: $BARRIER"
     echo "lambda: $LAMBDA"
@@ -118,15 +115,12 @@ domaincount_stateful_mergeall(){
     | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}' -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     sshell "map -n domainstats size"
+    # Move domainstats to AWS S3
+    aws s3 mv domainstats s3://amaheo/domainstats
     # sort
     echo "Sort domains"
-    cat domainstats | sort -k 2 -n -r > domainstats.sorted
-    #sshell "cat domainstats | sort -k 2 -n -r"
-    # for iter in numjobs:64
-    # do
-    #   M[iter-1].mergeAll(M[iter], Sum)
-    # done
-    # sort
+    sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r"
+    #sshell "cat s3://amaheo/domainstats | sort -k 2 -n -r > domainstats.sorted"
 
 }
 
@@ -198,8 +192,9 @@ terasort(){
   #done
 }
 
-# average_stateful
+#average_stateful
 #gathering
 #count_ips
+#domaincount
 domaincount_stateful_mergeall
 
