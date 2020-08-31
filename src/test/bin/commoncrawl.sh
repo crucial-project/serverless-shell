@@ -117,11 +117,12 @@ domaincount_stateful_mergeall(){
     sshell "map -n domainstats size"
     # Move domainstats to AWS S3
     aws s3 mv domainstats s3://amaheo/domainstats
+    aws s3api put-object-acl --bucket amaheo --key domainstats --acl public-read
     # sort
     echo "Sort domains"
-    sshell "aws s3 cp s3://amaheo/domainstats ."
-    sshell "cat domainstats | sort -k 2 -n -r > domainstats.sorted"
-    #sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r"
+    #sshell "aws s3 cp s3://amaheo/domainstats ."
+    #sshell "cat s3://amaheo/domainstats | sort -k 2 -n -r > domainstats.sorted"
+    sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r"
 
 }
 
