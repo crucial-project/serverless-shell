@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -x
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source ${DIR}/config.sh
@@ -116,13 +116,17 @@ domaincount_stateful_mergeall(){
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     sshell "map -n domainstats size"
     # Move domainstats to AWS S3
+    touch domainstats.sorted
     aws s3 mv domainstats s3://amaheo/domainstats
     aws s3api put-object-acl --bucket amaheo --key domainstats --acl public-read
+    aws s3 mv domainstats.sorted s3://amaheo/domainstats.sorted
+    aws s3api put-object-acl --bucket amaheo --key domainstats.sorted --acl public-read
     # sort
     echo "Sort domains"
     #sshell "aws s3 cp s3://amaheo/domainstats ."
     #sshell "cat s3://amaheo/domainstats | sort -k 2 -n -r > domainstats.sorted"
-    sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r"
+    #sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r > domainstats.sorted"
+    curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r > domainstats.sorted
 
 }
 
