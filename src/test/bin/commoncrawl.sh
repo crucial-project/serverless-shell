@@ -89,11 +89,12 @@ domaincount_stateful_mergeall(){
     BARRIER=$(uuid)
     #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
+    sshell "map -n mapdomains clear"
     echo "Parse WAT ..."
     while read l; do
         # a) Download metadata, b) unzip file, c) Search patterns "url" and "http", d) shorten url and keep domain name
         # e) count number of occurrences per domain
-        sshell "curl -s ${RANGE} ${CCBASE}/${l}
+        parallel -I,, --env sshell "sshell --async \"map -n mapdomains mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/${l} 
       	| zcat -q | tr \",\" \"\n\"
 	      | sed 's/url\"/& /g'
 	      | sed 's/:\"/& /g'
@@ -102,23 +103,30 @@ domaincount_stateful_mergeall(){
 	      | awk '{print \$3}'
 	      | sed s/[\\\",]//g
 	      | awk -F/ '{print \$3}'
-	      | awk '{for(i=1;i<=NF;i++) result[\$i]++} END {for(k in result) print k,result[k]}'" &
+	      | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}'
+	      | awk '{s=s\\\" -1 \\\"\\\$2\\\=\\\"\\\$1}END{print s}') -2 sum'\"" &
     done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domainstats
+    #head -n 100 domainstats > domainstatsredux
     wait
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
-    sshell "map -n domainstats clear"
-    LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
+    #sshell "map -n domainstats clear"
+    sshell "map -n mapdomains size"
+    #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     echo "barrier ID: $BARRIER"
     echo "lambda: $LAMBDA"
+    echo "Before Merge All"
     #cat domainstatspar | parallel -n0 --env sshell sshell --async barrier -n ${BARRIER} -p ${LAMBDA}  await
-    cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async \"map -n domainstats mergeAll 
+    #cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async \"map -n domainstats mergeAll 
+    cat domainstatsredux | parallel -I,, --env sshell "sshell --async \"map -n mapdomains mergeAll 
     | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}' -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
-    sshell "map -n domainstats size"
+    echo "After Merge All"
+    #sshell "map -n domainstats size"
+    sshell "map -n mapdomains size"
     # Move domainstats to AWS S3
     touch domainstats.sorted
-    aws s3 mv domainstats s3://amaheo/domainstats
-    aws s3api put-object-acl --bucket amaheo --key domainstats --acl public-read
+    #aws s3 mv domainstats s3://amaheo/domainstats
+    #aws s3api put-object-acl --bucket amaheo --key domainstats --acl public-read
     aws s3 mv domainstats.sorted s3://amaheo/domainstats.sorted
     aws s3api put-object-acl --bucket amaheo --key domainstats.sorted --acl public-read
     # sort
