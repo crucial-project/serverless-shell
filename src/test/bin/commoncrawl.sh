@@ -94,7 +94,7 @@ domaincount_stateful_mergeall(){
     while read l; do
         # a) Download metadata, b) unzip file, c) Search patterns "url" and "http", d) shorten url and keep domain name
         # e) count number of occurrences per domain
-        parallel -I,, --env sshell "sshell --async \"map -n mapdomains mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/${l} 
+        sshell "map -n mapdomains mergeAll \$(curl -s ${RANGE} ${CCBASE}/${l} 
       	| zcat -q | tr \",\" \"\n\"
 	      | sed 's/url\"/& /g'
 	      | sed 's/:\"/& /g'
@@ -104,7 +104,7 @@ domaincount_stateful_mergeall(){
 	      | sed s/[\\\",]//g
 	      | awk -F/ '{print \$3}'
 	      | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}'
-	      | awk '{s=s\\\" -1 \\\"\\\$2\\\=\\\"\\\$1}END{print s}') -2 sum'\"" &
+	      | awk '{s=s\" -1 \"\$2\"=\"\$1}END{print s}') -2 sum" &
     done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domainstats
     #head -n 100 domainstats > domainstatsredux
     wait
