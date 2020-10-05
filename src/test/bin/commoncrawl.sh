@@ -59,9 +59,45 @@ count_ips(){
     | sort 
     | uniq -c 
     | sort -bnr 
-    | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \"" > ipsmergeall.out
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
     sshell "map -n ips size"
+}
+
+count_ips_local(){
+    LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
+    BARRIER=$(uuid)
+    map -n ips clear
+    cat ${TMP_DIR}/index | parallel map -n ips mergeAll $(curl -s ${RANGE} ${CCBASE}/,, 
+    | zcat 
+    | tr '[:space:]' '[\n*]' 
+    | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" 
+    | sort 
+    | uniq -c 
+    | sort -bnr 
+    | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await > ipsmergeall.out
+    #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+    map -n ips size
+}
+
+count_ips_basic(){
+    LAMBDA=$(($(wc -l ips.out | awk '{print $1}')+1))
+    BARRIER=$(uuid)
+    echo "clear map mapips"
+    map -n mapips clear
+    map -n mapips size
+    echo "Perform Merge All"
+    map -n mapips mergeAll $(cat ips.out | awk '{s=s" -1 "$2"="$1}END{print s}') -2 sum > ipsmergeall.out
+    #map -n mapips mergeAll $(head -n 10 ips.out | awk '{s=s" -1 "$2"="$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await > ipsmergeall.out
+    map -n mapips size
+}
+
+count_ips_2(){
+    LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
+    BARRIER=$(uuid)
+    while read l; do
+       curl -s ${RANGE} ${CCBASE}/${l} | zcat | tr '[:space:]' '[\n*]' | grep -oE "b([0-9]{1,3}.){3}[0-9]{1,3}b" | sort | uniq -c | sort -bnr
+    done < ${TMP_DIR}/index > ips.out 
 }
 
 ## 5 - compute the popularity of each domain
@@ -82,12 +118,32 @@ domaincount(){
     done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' | sort -k 2 -n -r
 }
 
-##5 - compute the popularity of each domain (stateful: merge all)
+##5 - compute the popularity of each domain (merge all)
+
+domaincount_mergeall(){
+ LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
+ BARRIER=$(uuid)
+ sshell "map -n mapdomains clear"
+ cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async \"map -n mapdomains mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, 
+   	| zcat -q | tr \",\" \"\n\"
+	| sed 's/url\"/& /g'
+	| sed 's/:\"/& /g'
+	| grep \"url\"
+	| grep http
+	| awk '{print \$3}'
+	| sed s/[\\\",]//g
+	| awk -F/ '{print \$3}'
+	| awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}'
+        | awk '{s=s\\\" -1 \\\"\\\$1\\\"=\\\"\\\$2}END{print s}') -2 sum \"" > domainstats
+ #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+ sshell "map -n mapdomains size"
+}
+
+##6 - compute the popularity of each domain (stateful: merge all)
 
 domaincount_stateful_mergeall(){
     # declare a counter for JOB identifier
     BARRIER=$(uuid)
-    #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
     map -n mapdomains clear
     echo "Parse WAT ..."
@@ -116,22 +172,24 @@ domaincount_stateful_mergeall(){
     echo "lambda: $LAMBDA"
     echo "Before Merge All"
     count=0
-    head -n 200 domainstats2 > domainstats2redux
-    while IFS= read -r line; do
-      echo "read line of index"
-      echo "line: $line"
-      key=$(echo $line | awk '{print $1}')
-      val=$(echo $line | awk '{print $2}')
-      echo "key: $key"
-      echo "value: $val"
-      #awk -v col1=1 -v col2=2 '{print $col1, $col2}'
-      map -n mapdomains mergeAll -1 $key=$val -2 sum
-      echo count: $count
-      ((count=count+1))
-    done < domainstats2redux
-    echo "After Merge All"
-    #barrier -n ${BARRIER} -p ${LAMBDA} await
+    map -n mapdomains mergeAll $(cat domainstats | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
+    echo "After MergeAll: mapdomains size: "
     map -n mapdomains size
+    #while IFS= read -r line; do
+    #  echo "read line of index"
+    #  echo "line: $line"
+    #  key=$(echo $line | awk '{print $1}')
+    #  val=$(echo $line | awk '{print $2}')
+    #  echo "key: $key"
+    #  echo "value: $val"
+      #awk -v col1=1 -v col2=2 '{print $col1, $col2}'
+    #  map -n mapdomains mergeAll -1 $key=$val -2 sum
+    #  echo count: $count
+    #  ((count=count+1))
+    #done < domainstats2redux
+    #echo "After Merge All"
+    #barrier -n ${BARRIER} -p ${LAMBDA} await
+    #map -n mapdomains size
     #cat domainstatspar | parallel -n0 --env sshell sshell --async barrier -n ${BARRIER} -p ${LAMBDA}  await
     #cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async \"map -n domainstats mergeAll 
     #cat domainstatsredux | parallel -I,, --env sshell "sshell --async \"map -n mapdomains mergeAll 
@@ -226,6 +284,10 @@ terasort(){
 #average_stateful
 #gathering
 #count_ips
+#count_ips_local
+#count_ips_basic
+#count_ips_2
 #domaincount
+#domaincount_mergeall
 domaincount_stateful_mergeall
 
