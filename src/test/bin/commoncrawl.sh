@@ -141,18 +141,90 @@ domaincount_mergeall(){
 
 ##6 - compute the popularity of each domain (stateful: merge all)
 
+domaincount_wo_compute(){
+  while read l; do
+    sshell "sleep 0.01" 
+  done < ${TMP_DIR}/index-wat
+}
+
+sshell_echo(){
+echo "Test sshell echo"
+
+sshell "
+time1=`date +%s`
+echo test
+sleep 2
+time2=`date +%s`
+"
+
+echo "Wait 2 sec"
+wait
+sleep 2
+
+sshell "
+time3=`date +%s`
+echo test 2
+time4=`date +%s`
+echo \$time3
+echo \$time4
+spenttime=`expr $time4 - $time3`
+echo in sshell: spent time is \$spenttime seconds
+"
+
+ssh aurele@stark1.int-evry.fr "echo this is my_server; abc=2; echo abc is \$abc"
+sshell "echo sshell this is my_server; abc=2; echo abc is \$abc"
+
+ssh aurele@stark1.int-evry.fr "echo ssh; date1=`date +%s`; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds"
+sshell "echo sshell; date1=`date +%s`; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds"
+sshell "echo sshell; date1=`date +%s`; echo date is \$date1"
+
+time5=`date +%s`
+time6=`date +%s`
+echo "time is `expr $time6 - $time5` seconds"
+}
+
+domaincount_breakdown(){ 
+  echo "domaincount breakdown"
+  while read l; do
+    sshell "
+    clock1=`date +%s%N`;
+    curl -s ${RANGE} ${CCBASE}/${l};
+    clock2=`date +%s%N`;
+    zcat -q ${CCBASE}/${l} | tr \",\" \"\n\"
+	      | sed 's/url\"/& /g'
+	      | sed 's/:\"/& /g'
+	      | grep \"url\"
+	      | grep http
+	      | awk '{print \$3}'
+	      | sed s/[\\\",]//g
+	      | awk -F/ '{print \$3}'
+	      | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}';
+    echo sshell; date1=`date +%s`; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds;
+    clock3=`date +%s%N`; echo clock 1: \$clock1; echo clock 2: \$clock2; echo clock 3: \$clock3; times3=\`expr \$clock2 - \$clock1\`; timecompute=\`expr \$clock3 - \$clock2\`; echo time to read S3: \$times3 nanoseconds; echo time to parse: \$timecompute nanoseconds"
+  done < ${TMP_DIR}/index-wat	
+  clock4=`date +%s`
+  wait 
+  clock5=`date +%s`
+  echo Barrier time was `expr $clock5 - $clock4` seconds
+}
+
 domaincount_stateful_mergeall(){
     # declare a counter for JOB identifier
     BARRIER=$(uuid)
     LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
     map -n mapdomains clear
     echo "Parse WAT ..."
+    start=`date +%s%N`
+    startinvoc=`date +%s%N`
+    endinvoc=`date +%s%N`
     while read l; do
 	echo "read WAT line"
         # a) Download metadata, b) unzip file, c) Search patterns "url" and "http", d) shorten url and keep domain name
-        # e) count number of occurrences per domain
+       	# e) count number of occurrences per domain
+        startinvoc=`date +%s%N`
         sshell "curl -s ${RANGE} ${CCBASE}/${l} 
-      	| zcat -q | tr \",\" \"\n\"
+	| zcat -q
+      	| tr \",\" \"\n\"
 	      | sed 's/url\"/& /g'
 	      | sed 's/:\"/& /g'
 	      | grep \"url\"
@@ -161,10 +233,16 @@ domaincount_stateful_mergeall(){
 	      | sed s/[\\\",]//g
 	      | awk -F/ '{print \$3}'
 	      | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}'" &
-    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domainstats
+        endinvoc=`date +%s%N`
+    done < ${TMP_DIR}/index-wat | awk '{result[$1]+=$2} END {for(k in result) print k,result[k]}' > domainstats 
+    beforebarrier=`date +%s%N`
     wait
+    end=`date +%s%N`
+    echo Execution time was `expr $end - $start` nanoseconds
+    echo Barrier time was `expr $end - $beforebarrier` nanoseconds
+    echo Invocation time was `expr $endinvoc - $startinvoc` nanoseconds
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
-    map -n mapdomains size
+    sshell "map -n mapdomains size"
     #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     echo "barrier ID: $BARRIER"
     echo "lambda: $LAMBDA"
@@ -173,6 +251,7 @@ domaincount_stateful_mergeall(){
     map -n mapdomains mergeAll $(cat domainstats | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
     echo "After MergeAll: mapdomains size: "
     map -n mapdomains size
+    #map -n mapdomains print
     # Move domainstats to AWS S3
     touch domainstats.sorted
     #aws s3 mv domainstats s3://amaheo/domainstats
@@ -185,10 +264,17 @@ domaincount_stateful_mergeall(){
     #sshell "cat s3://amaheo/domainstats | sort -k 2 -n -r > domainstats.sorted"
     #sshell "curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r > domainstats.sorted"
     curl -s https://amaheo.s3.amazonaws.com/domainstats | sort -k 2 -n -r > domainstats.sorted
-
 }
 
-## 5 - compute the popularity of each domain (stateful)
+domaincount_mergeall_2ndstage(){
+    map -n mapdomains clear
+    map -n mapdomains size
+    map -n mapdomains mergeAll $(cat domainstats | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
+    map -n mapdomains size
+    map -n mapdomains print > domainstatsmerged
+}
+
+## 7 - compute the popularity of each domain (stateful)
 
 domaincount_stateful(){
   sshell "counter -n average reset"
@@ -210,7 +296,7 @@ domaincount_stateful(){
 
 }
 
-## 7 - terasort: sort key,value dataset by key (stateless)
+## 8 - terasort: sort key,value dataset by key (stateless)
 
 terasort(){
 
@@ -264,5 +350,9 @@ terasort(){
 #count_ips_2
 #domaincount
 #domaincount_mergeall
-domaincount_stateful_mergeall
+#domaincount_stateful_mergeall
+#domaincount_wo_compute
+#sshell_echo
+domaincount_breakdown
+#domaincount_mergeall_2ndstage
 
