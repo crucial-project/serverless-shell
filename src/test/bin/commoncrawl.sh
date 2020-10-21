@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=100
+INPUT=300
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -162,20 +162,37 @@ wait
 sleep 2
 
 sshell "
+echo sshell
 time3=`date +%s`
 echo test 2
+sleep 3
 time4=`date +%s`
 echo \$time3
 echo \$time4
-spenttime=`expr $time4 - $time3`
+spenttime=\`expr \$time4 - \$time3\`
 echo in sshell: spent time is \$spenttime seconds
 "
 
-ssh aurele@stark1.int-evry.fr "echo this is my_server; abc=2; echo abc is \$abc"
-sshell "echo sshell this is my_server; abc=2; echo abc is \$abc"
+ssh aurele@stark1.int-evry.fr "echo ssh this is my_server; abc=2 ; sleep 3 ; echo abc is \$abc"
+sshell "echo sshell this is my_server; abc=2 ; sleep 3 ; echo abc is \$abc"
 
-ssh aurele@stark1.int-evry.fr "echo ssh; date1=`date +%s`; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds"
-sshell "echo sshell; date1=`date +%s`; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds"
+ssh aurele@stark1.int-evry.fr "echo ssh; date1=`date +%s`; echo date 1 is \$date1; for i in {1..1000}; do echo $i; done ; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds"
+
+
+sshell "echo sshell; date1=`date +%s` ; echo date 1 is \$date1 ; date2=`date +%s` ; echo date 2 is \$date2 ; spenttime=\`expr \$date2 - \$date1\` ; echo spent time is \$spenttime seconds" > datesshell.out
+
+echo "Attempt to call ssh with sleep"
+ssh aurele@stark1.int-evry.fr "sleep 3"
+
+#icount = 0
+#while read l; do
+#  sshell "curl -s ${RANGE} ${CCBASE}/${l} > watcontent.out"
+#done < ${TMP_DIR}/index-wat	
+
+#while read l; do
+#  sshell "echo sshell; date1=`date +%s`; curl -s ${RANGE} ${CCBASE}/${l} ; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds" 
+#done < ${TMP_DIR}/index-wat
+
 sshell "echo sshell; date1=`date +%s`; echo date is \$date1"
 
 time5=`date +%s`
@@ -183,25 +200,24 @@ time6=`date +%s`
 echo "time is `expr $time6 - $time5` seconds"
 }
 
-domaincount_breakdown(){ 
-  echo "domaincount breakdown"
+domaincount_breakdown(){
+  echo "domaincount_breakdown"
+  touch breakdown.out
+  echo "breakdown" > breakdown.out
+  icount=0
   while read l; do
-    sshell "
-    clock1=`date +%s%N`;
-    curl -s ${RANGE} ${CCBASE}/${l};
-    clock2=`date +%s%N`;
-    zcat -q ${CCBASE}/${l} | tr \",\" \"\n\"
-	      | sed 's/url\"/& /g'
-	      | sed 's/:\"/& /g'
-	      | grep \"url\"
-	      | grep http
-	      | awk '{print \$3}'
-	      | sed s/[\\\",]//g
-	      | awk -F/ '{print \$3}'
-	      | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}';
-    echo sshell; date1=`date +%s`; echo date 1 is \$date1; date2=`date +%s`; echo date 2 is \$date2; spenttime=\`expr \$date2 - \$date1\`; echo spent time is \$spenttime seconds;
-    clock3=`date +%s%N`; echo clock 1: \$clock1; echo clock 2: \$clock2; echo clock 3: \$clock3; times3=\`expr \$clock2 - \$clock1\`; timecompute=\`expr \$clock3 - \$clock2\`; echo time to read S3: \$times3 nanoseconds; echo time to parse: \$timecompute nanoseconds"
-  done < ${TMP_DIR}/index-wat	
+	  sshell "(clock1=`date +%s` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=`date +%s` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl seconds > /tmp/durationcurl) | (clock3=`date +%s` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=`date +%s` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess seconds) "
+	 let "icount+=1"
+	 echo counter: $icount 
+  done < ${TMP_DIR}/index-wat
+}
+
+domaincount_breakdown_2(){ 
+  echo "domaincount breakdown"
+  touch domaincountbreakdown.out
+  while read l; do
+	  sshell "clock1=`date +%s` ; storecurl=$(curl -s ${RANGE} ${CCBASE}/${l}) ; clock2=`date +%s` ; echo $storecurl | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock3=`date +%s` ; echo clock 1: \$clock1 ; echo clock 2: \$clock2 ; echo clock 3: \$clock3 ; times3=\`expr \$clock2 - \$clock1\` ; timecompute=\`expr \$clock3 - \$clock2\` ; echo time to read S3: \$times3 nanoseconds ; echo time to parse: \$timecompute nanoseconds "
+  done < ${TMP_DIR}/index-wat > breakdown.out
   clock4=`date +%s`
   wait 
   clock5=`date +%s`
@@ -222,7 +238,7 @@ domaincount_stateful_mergeall(){
         # a) Download metadata, b) unzip file, c) Search patterns "url" and "http", d) shorten url and keep domain name
        	# e) count number of occurrences per domain
         startinvoc=`date +%s%N`
-        sshell "curl -s ${RANGE} ${CCBASE}/${l} 
+	sshell "curl -s ${RANGE} ${CCBASE}/${l}  
 	| zcat -q
       	| tr \",\" \"\n\"
 	      | sed 's/url\"/& /g'
