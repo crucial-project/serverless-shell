@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=300
+INPUT=200
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -200,16 +200,101 @@ time6=`date +%s`
 echo "time is `expr $time6 - $time5` seconds"
 }
 
+index-wat-echo(){
+  echo "index wat echo"
+  while read l; do 
+    echo 1	  
+  done < ${TMP_DIR}/index-wat
+}
+
+index-wat-lambda(){
+  echo "index wat echo"
+  while read l; do 
+    sshell "echo 1"	  
+  done < ${TMP_DIR}/index-wat
+}
+
+domaincount_breakdown_wo_lambda(){
+
+  echo "domaincount breakdown without lambda"
+  while read l; do
+    curl -s ${RANGE} ${CCBASE}/${l} | zcat -q | tr \",\" \"\n\" | sed s/url\"/& /g | sed s/:\"/& /g | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\,]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' 
+  done < ${TMP_DIR}/index-wat
+
+}
+
+parse_wat_index(){
+ 
+  echo "Parse WAT index"
+
+  sshell "
+  curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; head -n 10 /tmp/index-wat ; echo cat index wat ; cat /tmp/index-wat ; while read linewat ; do echo READ LINE ${linewat} ; done < /tmp/index-wat
+ "
+}
+
+
+domaincount_single_lambda(){
+
+  echo "Parse WAT index"
+
+  #sshell "curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; head -n 10 /tmp/index-wat ; echo cat index ; cat /tmp/index-wat ; while read linewat ; do echo read line ${linewat} ; done < /tmp/index-wat"
+  
+  sshell "curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex| sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; for watarch in \$tabwatarchs ; do curl -s ${RANGE} ${CCBASE}/\$watarch | zcat -q| tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; done"  
+
+}
+
+domaincount_single_lambda_2(){
+
+  echo "Process domaincount in one singe lambda"
+
+  sshell "
+     curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; cat /tmp/index-wat ; while read l; do echo read line ${l} ; done < /tmp/index-wat; while read l; do  echo read line ; echo ${l} ; curl -s ${RANGE} ${CCBASE}/${l} | zcat -q| tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; done < /tmp/index-wat
+  "
+
+}
+
 domaincount_breakdown(){
   echo "domaincount_breakdown"
   touch breakdown.out
   echo "breakdown" > breakdown.out
   icount=0
+  accinvokelambdatime=0
   while read l; do
-	  sshell "(clock1=`date +%s` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=`date +%s` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl seconds > /tmp/durationcurl) | (clock3=`date +%s` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=`date +%s` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess seconds) "
+	  clock5=`date +%s`
+	  sshell "(clock1=`date +%s%N` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=`date +%s%N` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl nanoseconds > /tmp/durationcurl) | (clock3=`date +%s%N` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=`date +%s%N` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess nanoseconds) "
 	 let "icount+=1"
 	 echo counter: $icount 
-  done < ${TMP_DIR}/index-wat
+	 clock6=`date +%s`
+	 echo time to invocate lambda: `expr $clock6 - $clock5`
+	 durationinvokelambda=`expr $clock6 - $clock5`
+	 let "accinvokelambdatime+=$durationinvokelambda"
+  done < ${TMP_DIR}/index-wat > breakdown.out
+
+  echo "accumulated time to invoke lambda: $accinvokelambdatime seconds"
+
+  acclambdaprocesstime=0
+
+  echo "grep lambda duration process"
+  
+  iicount=0
+  while read l; do  
+    let "iicount+=1"
+    echo counter: $iicount
+    echo ${l} | grep durationcurl | awk '{print $2}' 
+    echo ${l} | grep durationprocess | awk '{print $2}' 
+  done < breakdown.out > lambdaprocess.out 
+
+  echo "accumulate lambda processing time"
+
+  iiicount=0
+  while read l; do
+    let "iiicount+=1"
+    echo counter: $iiicount
+    readduration=$(echo ${l})
+    let "acclambdaprocessing+=$readduration"   
+  done < lambdaprocess.out	  
+
+  echo "Total lambda processing: $acclambdaprocessing nanoseconds"
 }
 
 domaincount_breakdown_2(){ 
@@ -369,6 +454,12 @@ terasort(){
 #domaincount_stateful_mergeall
 #domaincount_wo_compute
 #sshell_echo
-domaincount_breakdown
+#index-wat-echo
+#index-wat-lambda
+#parse_wat_index_lambda
+#parse_wat_index
+domaincount_single_lambda
+#domaincount_breakdown
+#domaincount_breakdown_wo_lambda
 #domaincount_mergeall_2ndstage
 
