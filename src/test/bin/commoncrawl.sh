@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=100
+INPUT=1600
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -234,18 +234,35 @@ done < ${TMP_DIR}/index-wat
 
 }
 
-domaincount_parallel_print_index(){
+domaincount_parallel(){
   
   #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
   #BARRIER=$(uuid)
 
-  cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountparallel.out
+  clock1=`date +%s`
+  cat ${TMP_DIR}/index-wat | parallel -j160 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountparallel.out
+  clock2=`date +%s`
 
-  #cat ${TMP_DIR}/index-wat | parallel -I,, curl -s ${RANGE} ${CCBASE}/,, | zcat
-  #cat ${TMP_DIR}/index-wat | parallel -I,, curl -s ${RANGE} ${CCBASE}/,, | zcat
- 
-  #cat ${TMP_DIR}/index-wat | parallel -j10 echo $1 
-  #curl -s ${RANGE} ${CCBASE}/crawl-data/CC-MAIN-2019-43/segments/1570986647517.11/wat/CC-MAIN-20191013195541-20191013222541-00001.warc.wat.gz | zcat -q
+  durationparalleldomaincount=`expr $clock2 - $clock1`
+  echo "parallel domaincount lasts $durationparalleldomaincount seconds"
+
+  echo "Before Merge All"
+  map -n mapdomains clear
+  map -n mapdomains size
+
+  split -l 10000 domaincountparallel.out domaincount.out
+  
+  CURRDIR=.
+  for iter in $CURRDIR/domaincount.out*; do
+    map -n mapdomains mergeAll $(cat $iter | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
+  done	  
+
+  #sshell "map -n mapdomains size"
+  #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
+  #echo "Before Merge All"
+  #map -n mapdomains mergeAll $(cat domaincountparallel.out | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
+  echo "After MergeAll: mapdomains size: "
+  map -n mapdomains size
 
 }
 
@@ -315,8 +332,12 @@ domaincount_single_lambda(){
   echo "Parse WAT index"
 
   #sshell "curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; head -n 10 /tmp/index-wat ; echo cat index ; cat /tmp/index-wat ; while read linewat ; do echo read line ${linewat} ; done < /tmp/index-wat"
-  
+ 
+  clock1=`date +%s` 
   sshell "echo download and store wat index ; echo `date +%s%N` > /tmp/clock1 ; sleep 3 ; curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex| sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; echo `date +%s%N` > /tmp/clock2 ; sleep 5 ; echo download and parse WAT archives ; for watarch in \$tabwatarchs ; do curl -s ${RANGE} ${CCBASE}/\$watarch | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; done ; echo `date +%s%N` > /tmp/clock3 ; clock1=\$(cat /tmp/clock1) ; clock2=\$(cat /tmp/clock2) ; clock3=\$(cat /tmp/clock3) ; timedownloadwatindex=\`expr \$clock2 - \$clock1\` ; timecurlwat=\`expr \$clock3 - \$clock2\` ; echo clock1: ; cat /tmp/clock1 ; echo  nanoseconds ; echo clock2: ; cat /tmp/clock2 ; echo nanoseconds ; echo clock3: ; cat /tmp/clock3 ; echo nanoseconds ; echo durationdownloadwatindex: \$timedownloadwatindex ; echo durationcurlwat: \$timecurlwat " > domaincountsinglelambda.out 
+  clock2=`date +%s`
+  durationsinglelambda=`expr $clock2 - $clock1`
+  echo "duration single lambda: $durationsinglelambda seconds"
 
 }
 
@@ -420,7 +441,9 @@ domaincount_stateful_mergeall(){
     echo Barrier time was `expr $end - $beforebarrier` nanoseconds
     echo Invocation time was `expr $endinvoc - $startinvoc` nanoseconds
     # Merge all: map -n <name> mergeAll <filename> -1 map<domainname,number> -2 <function(sum,multiply,divide)>
-    sshell "map -n mapdomains size"
+    #sshell "map -n mapdomains size"
+    map -n mapdomains clear
+    map -n mapdomains size
     #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
     echo "barrier ID: $BARRIER"
     echo "lambda: $LAMBDA"
@@ -539,7 +562,7 @@ terasort(){
 #domaincount_parallel_lambda
 #domaincount_curl_parallel_lambda
 #domaincount_local
-domaincount_parallel_print_index
+domaincount_parallel
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
