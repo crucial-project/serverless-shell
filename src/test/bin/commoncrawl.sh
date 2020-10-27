@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=10
+INPUT=100
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -226,12 +226,34 @@ domaincount_parallel_lambda(){
 
 }
 
-domaincount_curl_parallel_lambda(){
+domaincount_local(){
 
-  cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async  curl -s ${RANGE} ${CCBASE}/,, ; barrier -n ${BARRIER} -p ${LAMBDA} await  " > domaincountparallel.out
+while read l; do
+  curl -s ${RANGE} ${CCBASE}/${l} | zcat -q
+done < ${TMP_DIR}/index-wat
 
 }
 
+domaincount_parallel_print_index(){
+  
+  #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
+  #BARRIER=$(uuid)
+
+  cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountparallel.out
+
+  #cat ${TMP_DIR}/index-wat | parallel -I,, curl -s ${RANGE} ${CCBASE}/,, | zcat
+  #cat ${TMP_DIR}/index-wat | parallel -I,, curl -s ${RANGE} ${CCBASE}/,, | zcat
+ 
+  #cat ${TMP_DIR}/index-wat | parallel -j10 echo $1 
+  #curl -s ${RANGE} ${CCBASE}/crawl-data/CC-MAIN-2019-43/segments/1570986647517.11/wat/CC-MAIN-20191013195541-20191013222541-00001.warc.wat.gz | zcat -q
+
+}
+
+domaincount_curl_parallel_lambda(){
+
+  cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async curl -s ${RANGE} ${CCBASE}/,, ; barrier -n ${BARRIER} -p ${LAMBDA} await  "
+
+}
 
 domaincount_breakdown_wo_lambda(){
 
@@ -515,7 +537,9 @@ terasort(){
 #parse_wat_index
 #wat_index_parallel
 #domaincount_parallel_lambda
-domaincount_curl_parallel_lambda
+#domaincount_curl_parallel_lambda
+#domaincount_local
+domaincount_parallel_print_index
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
