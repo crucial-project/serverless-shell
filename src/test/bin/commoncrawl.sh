@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=1600
+INPUT=400
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -239,8 +239,11 @@ domaincount_parallel(){
   #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
   #BARRIER=$(uuid)
 
+  rm -rf domaincount.out*
+
   clock1=`date +%s`
-  cat ${TMP_DIR}/index-wat | parallel -j160 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountparallel.out
+  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/watarch.out ; cat /tmp/watarch.out | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; map -n mapdomains size " 
+  #cat ${TMP_DIR}/index-wat | parallel -I,, --env shell "echo index > index.out" 
   clock2=`date +%s`
 
   durationparalleldomaincount=`expr $clock2 - $clock1`
@@ -250,11 +253,13 @@ domaincount_parallel(){
   map -n mapdomains clear
   map -n mapdomains size
 
-  split -l 10000 domaincountparallel.out domaincount.out
+  split -l 40000 domaincountparallel.out domaincount.out
   
   CURRDIR=.
   for iter in $CURRDIR/domaincount.out*; do
-    map -n mapdomains mergeAll $(cat $iter | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
+    echo $iter	  
+    #map -n mapdomains mergeAll $(cat $iter | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
+    map -n mapdomains size
   done	  
 
   #sshell "map -n mapdomains size"
@@ -327,7 +332,7 @@ lambda_dl_watindex(){
 
 }
 
-domaincount_single_lambda(){
+domaincount_sequential_lambda(){
 
   echo "Parse WAT index"
 
@@ -568,7 +573,7 @@ domaincount_parallel
 #lambda_sleep
 #lambda_echo
 #lambda_curl
-#domaincount_single_lambda
+#domaincount_sequential_lambda
 #domaincount_breakdown
 #domaincount_breakdown_wo_lambda
 #domaincount_mergeall_2ndstage
