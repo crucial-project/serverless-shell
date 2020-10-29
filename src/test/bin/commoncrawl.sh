@@ -100,6 +100,45 @@ count_ips_2(){
     done < ${TMP_DIR}/index > ips.out 
 }
 
+buildperfbreakdownsummary() {
+
+ durationioacc=0
+ durationcomputeacc=0
+ durationsyncacc=0
+
+ cat $1 | grep durationio > durationio.out
+ #cat $1 | grep durationcompute > durationcompute.out
+ #cat $1 | grep durationsync > durationsync.out
+
+ # Read S3 IO file
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   echo "time io: $measure"
+   durationioacc=$((durationio+$measure))
+ done < durationio.out
+
+ # Read Compute file
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   echo "time io: $measure"
+   durationcomputeacc=$((durationcompute+$measure))
+ done < durationcompute.out
+
+ # Read Sync file
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   echo "time io: $measure"
+   durationsyncacc=$((durationsync+$measure))
+ done < durationsync.out
+
+
+ echo "Performance Breakdown Summary"
+
+ echo "duration S3 IO: $durationioacc" 
+ echo "duration Compute: $durationcomputeacc" 
+ echo "duration Sync: $durationsynacc" 
+}
+
 ## 5 - compute the popularity of each domain
 
 domaincount(){
@@ -567,7 +606,8 @@ terasort(){
 #domaincount_parallel_lambda
 #domaincount_curl_parallel_lambda
 #domaincount_local
-domaincount_parallel
+buildperfbreakdownsummary "testio.in"
+#domaincount_parallel
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
