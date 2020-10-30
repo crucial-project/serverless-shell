@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=400
+INPUT=100
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -281,25 +281,21 @@ domaincount_parallel(){
   rm -rf domaincount.out*
 
   clock1=`date +%s`
-  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/watarch.out ; cat /tmp/watarch.out | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; map -n mapdomains size " 
+  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum ; map -n mapdomains size" 
   #cat ${TMP_DIR}/index-wat | parallel -I,, --env shell "echo index > index.out" 
   clock2=`date +%s`
 
   durationparalleldomaincount=`expr $clock2 - $clock1`
   echo "parallel domaincount lasts $durationparalleldomaincount seconds"
-
-  echo "Before Merge All"
-  map -n mapdomains clear
-  map -n mapdomains size
-
-  split -l 40000 domaincountparallel.out domaincount.out
   
-  CURRDIR=.
-  for iter in $CURRDIR/domaincount.out*; do
-    echo $iter	  
+  #split -l 40000 domaincountparallel.out domaincount.out
+  
+  #CURRDIR=.
+  #for iter in $CURRDIR/domaincount.out*; do
+  #  echo $iter	  
     #map -n mapdomains mergeAll $(cat $iter | awk '{s=s" -1 "$1"="$2}END{print s}') -2 sum 
-    map -n mapdomains size
-  done	  
+  #  map -n mapdomains size
+  #done	  
 
   #sshell "map -n mapdomains size"
   #LAMBDA=$(($(wc -l domainstats | awk '{print $1}')+1))
@@ -606,8 +602,8 @@ terasort(){
 #domaincount_parallel_lambda
 #domaincount_curl_parallel_lambda
 #domaincount_local
-buildperfbreakdownsummary "testio.in"
-#domaincount_parallel
+#buildperfbreakdownsummary "testio.in"
+domaincount_parallel
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
