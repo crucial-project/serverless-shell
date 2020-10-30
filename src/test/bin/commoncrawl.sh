@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=100
+INPUT=200
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -102,41 +102,52 @@ count_ips_2(){
 
 buildperfbreakdownsummary() {
 
- durationioacc=0
- durationcomputeacc=0
- durationsyncacc=0
+ durationnanoioacc=0
+ durationnanocomputeacc=0
+ durationnanosyncacc=0
 
  cat $1 | grep durationio > durationio.out
- #cat $1 | grep durationcompute > durationcompute.out
- #cat $1 | grep durationsync > durationsync.out
+ cat $1 | grep durationcompute > durationcompute.out
+ cat $1 | grep durationsync > durationsync.out
 
  # Read S3 IO file
  while read l; do
    measure=$(echo ${l} | awk '{print $3}')
    echo "time io: $measure"
-   durationioacc=$((durationio+$measure))
+   durationnanoioacc=$((durationnanoioacc+$measure))
  done < durationio.out
 
  # Read Compute file
  while read l; do
    measure=$(echo ${l} | awk '{print $3}')
-   echo "time io: $measure"
-   durationcomputeacc=$((durationcompute+$measure))
+   echo "time compute: $measure"
+   durationnanocomputeacc=$((durationnanocomputeacc+$measure))
  done < durationcompute.out
 
  # Read Sync file
  while read l; do
    measure=$(echo ${l} | awk '{print $3}')
-   echo "time io: $measure"
-   durationsyncacc=$((durationsync+$measure))
+   echo "time sync: $measure"
+   durationnanosyncacc=$((durationnanosyncacc+$measure))
  done < durationsync.out
 
+ echo "duration S3 IO: $durationnanoioacc nanoseconds" 
+ echo "duration Compute: $durationnanocomputeacc nanoseconds" 
+ echo "duration Sync: $durationnanosyncacc nanoseconds" 
 
+ #echo $($durationnanoioacc/1000000)
+ #echo $($durationnanocomputeacc/1000000)
+ #echo $($durationnanosyncacc/1000000)
+ 
+ durationioacc=$((durationnanoioacc / 1000000))
+ durationcomputeacc=$((durationnanocomputeacc / 1000000))
+ durationsyncacc=$((durationnanosyncacc / 1000000))
+ 
  echo "Performance Breakdown Summary"
 
- echo "duration S3 IO: $durationioacc" 
- echo "duration Compute: $durationcomputeacc" 
- echo "duration Sync: $durationsynacc" 
+ echo "duration S3 IO: $durationioacc milliseconds" 
+ echo "duration Compute: $durationcomputeacc milliseconds" 
+ echo "duration Sync: $durationsyncacc milliseconds" 
 }
 
 ## 5 - compute the popularity of each domain
@@ -273,23 +284,25 @@ done < ${TMP_DIR}/index-wat
 
 }
 
-domaincount_parallel(){
+domaincount_parallel_breakdown(){
   
   #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
   #BARRIER=$(uuid)
 
   rm -rf domaincount.out*
 
-  clock1=`date +%s`
-  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum" 
+  clockstart=`date +%s`
+  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "(clock1=`date +%s%N` > /tmp/clock1 ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=`date +%s%N` ; echo \$clock2 > /tmp/clock2) | (clock3=`date +%s%N` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=`date +%s%N` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; clock5=`date +%s%N` ; echo \$clock5 > /tmp/clock5 ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum ; clock6=`date +%s%N` ; echo \$clock6 > /tmp/clock6 ; clocks3io1=\$(cat /tmp/clock1) ; clocks3io2=\$(cat /tmp/clock2) ; clockcompute1=\$(cat /tmp/clock3) ; clockcompute2=\$(cat /tmp/clock4) ; clocksync1=\$(cat /tmp/clock5) ; clocksync2=\$(cat /tmp/clock6) ; durations3io=\`expr \$clocks3io2 - \$clocks3io1\` ; durationcompute=\`expr \$clockcompute2 - \$clockcompute1\` ; durationsync=\`expr \$clocksync2 - \$clocksync1\` ; echo durationio = \$durations3io ; echo durationcompute = \$durationcompute ; echo durationsync = \$durationsync " > domaincountbreakdown.out 
+  
   #cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > watarch.out
   
   #cat ${TMP_DIR}/index-wat | parallel -I,, --env shell "echo index > index.out" 
-  clock2=`date +%s`
+  clockend=`date +%s`
 
-  durationparalleldomaincount=`expr $clock2 - $clock1`
+  durationparalleldomaincount=`expr $clockend - $clockstart`
   echo "parallel domaincount lasts $durationparalleldomaincount seconds"
   
+  buildperfbreakdownsummary "domaincountbreakdown.out"
   #split -l 40000 domaincountparallel.out domaincount.out
   
   #CURRDIR=.
@@ -605,7 +618,7 @@ terasort(){
 #domaincount_curl_parallel_lambda
 #domaincount_local
 #buildperfbreakdownsummary "testio.in"
-domaincount_parallel
+domaincount_parallel_breakdown
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
