@@ -281,7 +281,9 @@ domaincount_parallel(){
   rm -rf domaincount.out*
 
   clock1=`date +%s`
-  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum ; map -n mapdomains size" 
+  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum" 
+  #cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > watarch.out
+  
   #cat ${TMP_DIR}/index-wat | parallel -I,, --env shell "echo index > index.out" 
   clock2=`date +%s`
 
