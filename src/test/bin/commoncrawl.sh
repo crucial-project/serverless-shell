@@ -5,7 +5,7 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=200
+INPUT=10
 STEP=100
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -139,15 +139,23 @@ buildperfbreakdownsummary() {
  #echo $($durationnanocomputeacc/1000000)
  #echo $($durationnanosyncacc/1000000)
  
- durationioacc=$((durationnanoioacc / 1000000))
- durationcomputeacc=$((durationnanocomputeacc / 1000000))
- durationsyncacc=$((durationnanosyncacc / 1000000))
+ durationioaccsecs=$((durationnanoioacc / 1000000000)) 
+ durationcomputeaccsecs=$((durationnanocomputeacc / 1000000000)) 
+ durationsyncaccsecs=$((durationnanosyncacc / 1000000000)) 
+ 
+ durationioavg=$((durationioaccsecs / ${INPUT}))
+ durationcomputeavg=$((durationcomputeaccsecs / ${INPUT}))
+ durationsyncavg=$((durationsyncaccsecs / ${INPUT}))
+
+ #durationioacc=$((durationnanoioacc / 1000000))
+ #durationcomputeacc=$((durationnanocomputeacc / 1000000))
+ #durationsyncacc=$((durationnanosyncacc / 1000000))
  
  echo "Performance Breakdown Summary"
 
- echo "duration S3 IO: $durationioacc milliseconds" 
- echo "duration Compute: $durationcomputeacc milliseconds" 
- echo "duration Sync: $durationsyncacc milliseconds" 
+ echo "Average duration S3 IO: $durationioavg seconds" 
+ echo "Average duration Compute: $durationcomputeavg seconds" 
+ echo "Average duration Sync: $durationsyncavg seconds" 
 }
 
 ## 5 - compute the popularity of each domain
@@ -286,14 +294,20 @@ done < ${TMP_DIR}/index-wat
 
 domaincount_parallel_breakdown(){
   
-  #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
-  #BARRIER=$(uuid)
+  LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
+  BARRIER=$(uuid)
 
   rm -rf domaincount.out*
-
+  map -n mapdomains clear
   clockstart=`date +%s`
-  cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "(clock1=`date +%s%N` > /tmp/clock1 ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=`date +%s%N` ; echo \$clock2 > /tmp/clock2) | (clock3=`date +%s%N` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=`date +%s%N` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; clock5=`date +%s%N` ; echo \$clock5 > /tmp/clock5 ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum ; clock6=`date +%s%N` ; echo \$clock6 > /tmp/clock6 ; clocks3io1=\$(cat /tmp/clock1) ; clocks3io2=\$(cat /tmp/clock2) ; clockcompute1=\$(cat /tmp/clock3) ; clockcompute2=\$(cat /tmp/clock4) ; clocksync1=\$(cat /tmp/clock5) ; clocksync2=\$(cat /tmp/clock6) ; durations3io=\`expr \$clocks3io2 - \$clocks3io1\` ; durationcompute=\`expr \$clockcompute2 - \$clockcompute1\` ; durationsync=\`expr \$clocksync2 - \$clocksync1\` ; echo durationio = \$durations3io ; echo durationcompute = \$durationcompute ; echo durationsync = \$durationsync " > domaincountbreakdown.out 
-  
+  #cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; clock5=\`date +%s%N\` ; echo \$clock5 > /tmp/clock5 ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum ; clock6=\`date +%s%N\` ; echo \$clock6 > /tmp/clock6 ; clocks3io1=\$(cat /tmp/clock1) ; clocks3io2=\$(cat /tmp/clock2) ; clockcompute1=\$(cat /tmp/clock3) ; clockcompute2=\$(cat /tmp/clock4) ; clocksync1=\$(cat /tmp/clock5) ; clocksync2=\$(cat /tmp/clock6) ; durations3io=\`expr \$clocks3io2 - \$clocks3io1\` ; durationcompute=\`expr \$clockcompute2 - \$clockcompute1\` ; durationsync=\`expr \$clocksync2 - \$clocksync1\` ; echo durationio = \$durations3io ; echo durationcompute = \$durationcompute ; echo durationsync = \$durationsync " > domaincountbreakdown.out 
+  cat ${TMP_DIR}/index-wat | parallel -j20 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; sed -i '/^$/d' /tmp/domaincount.out ; map -n mapdomains size ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum " > domaincountbreakdown.out 
+  #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+  #cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) ; sed -i '/^$/d' /tmp/domaincount.out " > domaincountbreakdown.out 
+
+  #cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "clock1=`date +%s` ; echo \$clock1 ; sleep 2 ; clock2=`date +%s` ; echo \$clock2 ; durationtest=\`expr \$clock2 - \$clock1\` ; echo duration test: \$durationtest " > testclock.out
+  #sshell "clock1=\`date +%s\` ; echo \$clock1 ; sleep 2 ; clock2=\`date +%s\` ; echo \$clock2 ; durationtest=\`expr \$clock2 - \$clock1\` ; echo duration test: \$durationtest " > testclock.out
+ 
   #cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > watarch.out
   
   #cat ${TMP_DIR}/index-wat | parallel -I,, --env shell "echo index > index.out" 
@@ -302,7 +316,7 @@ domaincount_parallel_breakdown(){
   durationparalleldomaincount=`expr $clockend - $clockstart`
   echo "parallel domaincount lasts $durationparalleldomaincount seconds"
   
-  buildperfbreakdownsummary "domaincountbreakdown.out"
+  #buildperfbreakdownsummary "domaincountbreakdown.out"
   #split -l 40000 domaincountparallel.out domaincount.out
   
   #CURRDIR=.
@@ -409,22 +423,27 @@ domaincount_single_lambda_2(){
 domaincount_breakdown(){
   echo "domaincount_breakdown"
   touch breakdown.out
+  BARRIER=$(uuid)
+  LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
+
   echo "breakdown" > breakdown.out
   icount=0
   accinvokelambdatime=0
   while read l; do
 	  clock5=`date +%s`
-	  sshell "(clock1=`date +%s%N` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=`date +%s%N` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl nanoseconds > /tmp/durationcurl) | (clock3=`date +%s%N` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=`date +%s%N` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess nanoseconds) "
+	  sshell "(clock1=\`date +%s%N\` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=\`date +%s%N\` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl nanoseconds > /tmp/durationcurl) | (clock3=\`date +%s%N\` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess nanoseconds) > /tmp/domaincount.out ; sed -i '/^$/d' /tmp/domaincount.out ; map -n mapdomains size ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum  " 2> domaincountshellbreakdown.out
+	 #sshell "test" 2> test.out
 	 let "icount+=1"
 	 echo counter: $icount 
 	 clock6=`date +%s`
 	 echo time to invocate lambda: `expr $clock6 - $clock5`
 	 durationinvokelambda=`expr $clock6 - $clock5`
 	 let "accinvokelambdatime+=$durationinvokelambda"
-  done < ${TMP_DIR}/index-wat > breakdown.out
+  done < ${TMP_DIR}/index-wat > domaincountbreakdown.out
 
   echo "accumulated time to invoke lambda: $accinvokelambdatime seconds"
 
+  sshell barrier -n ${BARRIER} -p ${LAMBDA} await
   acclambdaprocesstime=0
 
   echo "grep lambda duration process"
@@ -444,7 +463,7 @@ domaincount_breakdown(){
     let "iiicount+=1"
     echo counter: $iiicount
     readduration=$(echo ${l})
-    let "acclambdaprocessing+=$readduration"   
+    #let "acclambdaprocessing+=$readduration"   
   done < lambdaprocess.out	  
 
   echo "Total lambda processing: $acclambdaprocessing nanoseconds"
@@ -618,14 +637,14 @@ terasort(){
 #domaincount_curl_parallel_lambda
 #domaincount_local
 #buildperfbreakdownsummary "testio.in"
-domaincount_parallel_breakdown
+#domaincount_parallel_breakdown
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
 #lambda_echo
 #lambda_curl
 #domaincount_sequential_lambda
-#domaincount_breakdown
+domaincount_breakdown
 #domaincount_breakdown_wo_lambda
 #domaincount_mergeall_2ndstage
 
