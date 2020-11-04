@@ -5,14 +5,20 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=10
-STEP=100
+INPUT=8000
+STEP=1000
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
+
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index-wat
+
+# 1 line
+#curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
+#    | zcat | head -n 1 > ${TMP_DIR}/index-wat
 
 ### 1 - average content size (stateless)
 
@@ -301,7 +307,37 @@ domaincount_parallel_breakdown(){
   map -n mapdomains clear
   clockstart=`date +%s`
   #cat ${TMP_DIR}/index-wat | parallel -j32 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; clock5=\`date +%s%N\` ; echo \$clock5 > /tmp/clock5 ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum ; clock6=\`date +%s%N\` ; echo \$clock6 > /tmp/clock6 ; clocks3io1=\$(cat /tmp/clock1) ; clocks3io2=\$(cat /tmp/clock2) ; clockcompute1=\$(cat /tmp/clock3) ; clockcompute2=\$(cat /tmp/clock4) ; clocksync1=\$(cat /tmp/clock5) ; clocksync2=\$(cat /tmp/clock6) ; durations3io=\`expr \$clocks3io2 - \$clocks3io1\` ; durationcompute=\`expr \$clockcompute2 - \$clockcompute1\` ; durationsync=\`expr \$clocksync2 - \$clocksync1\` ; echo durationio = \$durations3io ; echo durationcompute = \$durationcompute ; echo durationsync = \$durationsync " > domaincountbreakdown.out 
-  cat ${TMP_DIR}/index-wat | parallel -j20 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; sed -i '/^$/d' /tmp/domaincount.out ; map -n mapdomains size ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum " > domaincountbreakdown.out 
+  #cat ${TMP_DIR}/index-wat | parallel -j20 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; sed -i '/^$/d' /tmp/domaincount.out ; cat /tmp/domaincount.out" > domaincountbreakdown.out 
+  #cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "(clock1=\`date +%s\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s\` ; echo \$clock4 > /tmp/clock4) > /tmp/domaincount.out ; clockio1=\$(cat /tmp/clock1) ; clockio2=\$(cat /tmp/clock2) ; clockcompute1=\$(cat /tmp/clock3) ; clockcompute2=\$(cat /tmp/clock4) ; durationio=\`expr \$clockio2 - \$clockio1\` ; durationcompute=\`expr \$clockcompute2 - \$clockcompute1\` ; cat /tmp/domaincount.out ; echo durationio = \$durationio  ; echo durationcompute = \$durationcompute"  
+  clock1=`date +%s`
+  #while read l; do
+  #  curl -s ${RANGE} ${CCBASE}/${l} | zcat -q
+  #done < ${TMP_DIR}/index-wat	  
+  #sshell "curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat"
+  #sshell " echo download and store wat index ; echo `date +%s%N` > /tmp/clock1 ; sleep 3 ; curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex| sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; echo `date +%s%N` > /tmp/clock2 ; sleep 5 ; echo download and parse WAT archives ; for watarch in \$tabwatarchs ; do curl -s ${RANGE} ${CCBASE}/\$watarch | zcat -q ; done " 
+
+  #cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "clock1=\`date +%s\` ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s\` ; duration=\`expr \$clock2 - \$clock1\` ; echo curl duration: \$duration seconds"
+  #sshell "clock1=\`date +%s\` ; curl -s ${RANGE} ${CCBASE}/$line | zcat -q ; clock2=\`date +%s\` ; duration=\`expr \$clock2 - \$clock1\` ; echo curl duration: \$duration seconds"
+  #sshell "echo download and store wat index ; echo \`date +%s\` > /tmp/clock1 ; curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex| sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; echo \`date +%s\` > /tmp/clock2 ; echo download and parse WAT archives ; for watarch in \$tabwatarchs ; do curl -s ${RANGE} ${CCBASE}/\$watarch | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; done ; echo \`date +%s\` > /tmp/clock3 ; clock1=\$(cat /tmp/clock1) ; clock2=\$(cat /tmp/clock2) ; clock3=\$(cat /tmp/clock3) ; timedownloadwatindex=\`expr \$clock2 - \$clock1\` ; timecurlwat=\`expr \$clock3 - \$clock2\` ; echo clock1: ; cat /tmp/clock1 ; echo  seconds ; echo clock2: ; cat /tmp/clock2 ; echo seconds ; echo clock3: ; cat /tmp/clock3 ; echo seconds ; echo durationdownloadwatindex: \$timedownloadwatindex seconds ; echo durationcurlwat: \$timecurlwat seconds" > seq_domaincount.out 
+  #sshell "echo download and store wat index ; echo \`date +%s\` > /tmp/clock1 ; curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex| sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; echo \`date +%s\` > /tmp/clock2 ; echo download and parse WAT archives ; for watarch in \$tabwatarchs ; do curl -s ${RANGE} ${CCBASE}/\$watarch | zcat -q  ; done ; echo \`date +%s\` > /tmp/clock3 ; clock1=\$(cat /tmp/clock1) ; clock2=\$(cat /tmp/clock2) ; clock3=\$(cat /tmp/clock3) ; timedownloadwatindex=\`expr \$clock2 - \$clock1\` ; timecurlwat=\`expr \$clock3 - \$clock2\` ; echo clock1: ; cat /tmp/clock1 ; echo  seconds ; echo clock2: ; cat /tmp/clock2 ; echo seconds ; echo clock3: ; cat /tmp/clock3 ; echo seconds ; echo durationdownloadwatindex: \$timedownloadwatindex seconds ; echo durationcurlwat: \$timecurlwat seconds" 
+  sshell "echo download and store wat index ; echo \`date +%s\` > /tmp/clock1 ; curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex | sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; echo \`date +%s\` > /tmp/clock2 ; echo download and parse WAT archives ; line=\$(head -n 1 /tmp/index-wat) ; echo \$line ; curl -o /tmp/curl.out -s ${RANGE} ${CCBASE}/\$line ; barrier -n ${BARRIER} -p ${LAMBDA} await ; echo \`date +%s\` > /tmp/clock3 ; clock1=\$(cat /tmp/clock1) ; clock2=\$(cat /tmp/clock2) ; clock3=\$(cat /tmp/clock3) ; timedownloadwatindex=\`expr \$clock2 - \$clock1\` ; timecurlwat=\`expr \$clock3 - \$clock2\` ; echo clock1: ; cat /tmp/clock1 ; echo seconds ; echo clock2: ; cat /tmp/clock2 ; echo seconds ; echo clock3: ; cat /tmp/clock3 ; echo seconds ; echo durationdownloadwatindex: \$timedownloadwatindex seconds ; echo durationcurlwat: \$timecurlwat seconds" 
+  #sshell "echo download and store wat index ; echo \`date +%s\` > /tmp/clock1 ; curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz | zcat | head -n ${INPUT} > /tmp/index-wat ; varindex=\$(cat /tmp/index-wat) ; echo \$varindex| sed 's/ /,/g' > /tmp/varindexseparator ; tabwatarchs=\$(cat /tmp/varindexseparator | tr \",\" \"\n\") ; echo \`date +%s\` > /tmp/clock2 ; echo download and parse WAT archives  ;  echo \`date +%s\` > /tmp/clock3 ; clock1=\$(cat /tmp/clock1) ; clock2=\$(cat /tmp/clock2) ; clock3=\$(cat /tmp/clock3) ; timedownloadwatindex=\`expr \$clock2 - \$clock1\` ; timecurlwat=\`expr \$clock3 - \$clock2\` ; echo clock1: ; cat /tmp/clock1 ; echo  seconds ; echo clock2: ; cat /tmp/clock2 ; echo seconds ; echo clock3: ; cat /tmp/clock3 ; echo seconds ; echo durationdownloadwatindex: \$timedownloadwatindex seconds ; echo durationcurlwat: \$timecurlwat seconds" 
+  clock2=`date +%s`
+  durationcurl=`expr $clock2 - $clock1`
+  echo duration curl: $durationcurl seconds
+
+  wc -l domaincountbreakdown.out > domaincountbeforemergeall.out
+  clock5=`date +%s`
+  awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincountbreakdown.out > domaincountbreakdownmerged.out
+  clock6=`date +%s`
+  durationsync=`expr $clock6 - $clock5`
+  echo sync duration: $durationsync seconds
+  wc -l domaincountbreakdownmerged.out > domaincountaftermergeall.out
+  echo "Number of lines before and after mergeAll "
+  cat domaincountbeforemergeall.out
+  cat domaincountaftermergeall.out
+
+   
   #sshell barrier -n ${BARRIER} -p ${LAMBDA} await
   #cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "(clock1=\`date +%s%N\` ; echo \$clock1 > /tmp/clock1 ; curl -s ${RANGE} ${CCBASE}/,, | zcat -q ; clock2=\`date +%s%N\` ; echo \$clock2 > /tmp/clock2) | (clock3=\`date +%s%N\` ; echo \$clock3 > /tmp/clock3 ; tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; echo \$clock4 > /tmp/clock4) ; sed -i '/^$/d' /tmp/domaincount.out " > domaincountbreakdown.out 
 
@@ -361,17 +397,104 @@ parse_wat_index(){
 
 local_sleep(){
 
-  echo "Local - sleep 20s"
+  echo "Local - sleep 10s"
 
-  clock1=`date +%s` ; echo $clock1 ; echo before sleep ; sleep 20 ; echo after sleep ; clock2=`date +%s` ; echo $clock2 ; duration=`expr $clock2 - $clock1` ; echo time spent: $duration seconds
+  clock1=`date +%s` ; echo $clock1 ; echo before sleep ; sleep 10 ; echo after sleep ; clock2=`date +%s` ; echo $clock2 ; duration=`expr $clock2 - $clock1` ; echo time spent: $duration seconds
 }
 
 lambda_sleep(){
 
-  echo "Lambda - sleep 20s"
+  echo "Lambda - sleep 10s"
 
-  sshell "clock1=\`date +%s\` ; echo \$clock1 ; echo before sleep ; sleep 20 ; echo after sleep ; clock2=\`date +%s\` ; echo \$clock2 ; duration=\`expr \$clock2 - \$clock1\` ; echo time spent: \$duration seconds"
+  clock1=`date +%s`
+  #sshell "clock1=\`date +%s\` ; echo \$clock1 ; echo before sleep ; sleep 10 ; echo after sleep ; clock2=\`date +%s\` ; echo \$clock2 ; duration=\`expr \$clock2 - \$clock1\` ; echo time spent: \$duration seconds"
+  
+  sshell "sleep 10"
+  clock2=`date +%s`
+
+  durationlambdasleep=`expr $clock2 - $clock1`
+  echo duration : $durationlambdasleep
 }
+
+measure_parallel_lambda_invocation(){
+
+  echo "Measure average time to invoke parallel lambdas"
+
+  clock1=`date +%s`
+
+  for i in {1..10}; do
+    cat ${TMP_DIR}/index-wat | parallel -j40 --env sshell "ls /tmp"     
+  done
+
+  clock2=`date +%s`
+  duration=`expr $clock2 - $clock1`
+  durationinvoke=`expr $clock2 - $clock1`
+  #durationinvoke=`expr $duration - 20`
+
+  echo overall duration invoke: $durationinvoke seconds
+  avgduration=$((duration/10)) 
+  avgdurationinvoke=$((durationinvoke/10)) 
+
+  echo average global duration of lambda: $avgduration seconds
+  echo average duration of lambda invocation: $avgdurationinvoke seconds
+
+}
+
+measure_parallel_lambda_curl(){
+
+  echo "Measure average time to perform curl with parallel lambdas"
+
+  clock1=`date +%s`
+
+  for i in {1..6}; do
+    cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out"     
+  done
+
+  clock2=`date +%s`
+  durationcurl=`expr $clock2 - $clock1`
+  #durationinvoke=`expr $duration - 100`
+
+  #echo overall duration curl: $durationinvoke seconds
+  avgdurationcurl=$((durationcurl/6)) 
+
+  echo average duration of lambda curl: $avgdurationcurl seconds
+
+}
+
+measure_parallel_lambda_curl_process(){
+
+  echo "Measure average time to perform curl and process with parallel lambdas"
+
+  clock1=`date +%s`
+
+  for i in {1..4}; do
+    cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out ; cat /tmp/curl.out | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountbreakdown.out 
+    #cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out "     
+  done
+
+  clock2=`date +%s`
+  durationcurlprocess=`expr $clock2 - $clock1`
+  #durationinvoke=`expr $duration - 100`
+
+  #echo overall duration curl: $durationinvoke seconds
+  avgdurationcurlprocess=$((durationcurlprocess/4)) 
+
+  echo average duration of lambda curl process: $avgdurationcurlprocess seconds
+
+  wc -l domaincountbreakdown.out > domaincountbeforemergeall.out
+  clock3=`date +%s`
+  awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincountbreakdown.out > domaincountbreakdownmerged.out
+  cat domaincountbreakdownmerged.out | sort -k 2 -n -r > domaincountbreakdownmergedsorted.out
+  clock4=`date +%s`
+  durationsync=`expr $clock4 - $clock3`
+  echo sync duration: $durationsync seconds
+  wc -l domaincountbreakdownmerged.out > domaincountaftermergeall.out
+  echo "Number of lines before and after mergeAll "
+  cat domaincountbeforemergeall.out
+  cat domaincountaftermergeall.out
+
+}
+
 
 lambda_echo(){
 
@@ -638,13 +761,16 @@ terasort(){
 #domaincount_local
 #buildperfbreakdownsummary "testio.in"
 #domaincount_parallel_breakdown
+measure_parallel_lambda_invocation
+#measure_parallel_lambda_curl
+#measure_parallel_lambda_curl_process
 #lambda_dl_watindex
 #local_sleep
 #lambda_sleep
 #lambda_echo
 #lambda_curl
 #domaincount_sequential_lambda
-domaincount_breakdown
+#domaincount_breakdown
 #domaincount_breakdown_wo_lambda
 #domaincount_mergeall_2ndstage
 
