@@ -5,7 +5,8 @@ source ${DIR}/config.sh
 
 CCBASE="https://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=8000
+SEGMENT="crawl-data/CC-MAIN-2019-43/segments/1570986647517.11/wat/CC-MAIN-20191013195541-20191013222541-00001.warc.wat.gz"
+INPUT=100
 STEP=1000
 NUMJOBS=64 # Arbitrary number of jobs for stateful version
 RANGE="-r 0-1000000"
@@ -298,7 +299,7 @@ done < ${TMP_DIR}/index-wat
 
 }
 
-domaincount_parallel_breakdown(){
+domaincount_parallel_breakdown_2(){
   
   LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
   BARRIER=$(uuid)
@@ -407,13 +408,65 @@ lambda_sleep(){
   echo "Lambda - sleep 10s"
 
   clock1=`date +%s`
-  #sshell "clock1=\`date +%s\` ; echo \$clock1 ; echo before sleep ; sleep 10 ; echo after sleep ; clock2=\`date +%s\` ; echo \$clock2 ; duration=\`expr \$clock2 - \$clock1\` ; echo time spent: \$duration seconds"
+  sshell "clock1=\`date +%s\` ; echo \$clock1 ; echo \"before sleep\" ; sleep 10 ; echo \"after sleep\" ; clock2=\`date +%s\` ; echo \$clock2 ; duration=\`expr \$clock2 - \$clock1\` ; echo time spent: \$duration seconds"
   
-  sshell "sleep 10"
+  #sshell "sleep 10"
   clock2=`date +%s`
 
   durationlambdasleep=`expr $clock2 - $clock1`
   echo duration : $durationlambdasleep
+}
+
+measure_parallel_echo(){
+
+  echo "Measure average time to GNU parallel echo"
+
+  clock1=`date +%s`
+
+  #for i in {1..10}; do
+    cat ${TMP_DIR}/index-wat | parallel -j800 echo     
+  #done
+
+  clock2=`date +%s`
+  #duration=`expr $clock2 - $clock1`
+  durationinvoke=`expr $clock2 - $clock1`
+  #durationinvoke=`expr $duration - 20`
+
+  echo overall duration parallel echo: $durationinvoke seconds
+  #avgduration=$((duration/10)) 
+  #avgdurationinvoke=$((durationinvoke/10)) 
+
+  #echo average global duration of lambda: $avgduration seconds
+  #echo average duration of lambda invocation: $avgdurationinvoke seconds
+
+}
+
+domaincount_parallel_breakdown(){
+
+  clock1=`date +%s`
+
+  #cat ${TMP_DIR}/index-wat | parallel -j16 -I,, sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out ; cat /tmp/curl.out | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' "  
+
+  #cat ${TMP_DIR}/index-wat | parallel -j16 -I,, sshell "echo test" > test.out
+  cat ${TMP_DIR}/index-wat | parallel -j16 -I,, sshell "curl -s ${RANGE} ${CCBASE}/,, | gzip -d" 
+
+  clock2=`date +%s`
+  duration=`expr $clock2 - $clock1`
+
+  echo "duration domaincount: $duration seconds"
+
+  wc -l domaincountbreakdown.out > domaincountbeforemergeall.out
+  clock3=`date +%s`
+  awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincountbreakdown.out > domaincountbreakdownmerged.out
+  cat domaincountbreakdownmerged.out | sort -k 2 -n -r > domaincountbreakdownmergedsorted.out
+  clock4=`date +%s`
+  durationsync=`expr $clock4 - $clock3`
+  echo sync duration: $durationsync seconds
+  wc -l domaincountbreakdownmerged.out > domaincountaftermergeall.out
+  echo "Number of lines before and after mergeAll "
+  cat domaincountbeforemergeall.out
+  cat domaincountaftermergeall.out
+
 }
 
 measure_parallel_lambda_invocation(){
@@ -422,21 +475,22 @@ measure_parallel_lambda_invocation(){
 
   clock1=`date +%s`
 
-  for i in {1..10}; do
-    cat ${TMP_DIR}/index-wat | parallel -j40 --env sshell "ls /tmp"     
-  done
+  #for i in {1..10}; do
+    cat ${TMP_DIR}/index-wat | parallel -j16 sshell "ls /tmp"     
+    #cat ${TMP_DIR}/index-wat | parallel -j200 -I,, --env sshell "sleep 10"     
+  #done
 
   clock2=`date +%s`
-  duration=`expr $clock2 - $clock1`
+  #duration=`expr $clock2 - $clock1`
   durationinvoke=`expr $clock2 - $clock1`
   #durationinvoke=`expr $duration - 20`
 
   echo overall duration invoke: $durationinvoke seconds
-  avgduration=$((duration/10)) 
-  avgdurationinvoke=$((durationinvoke/10)) 
+  #avgduration=$((duration/10)) 
+  #avgdurationinvoke=$((durationinvoke/10)) 
 
-  echo average global duration of lambda: $avgduration seconds
-  echo average duration of lambda invocation: $avgdurationinvoke seconds
+  #echo average global duration of lambda: $avgduration seconds
+  #echo average duration of lambda invocation: $avgdurationinvoke seconds
 
 }
 
@@ -446,18 +500,32 @@ measure_parallel_lambda_curl(){
 
   clock1=`date +%s`
 
-  for i in {1..6}; do
-    cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out"     
-  done
+  #for i in {1..6}; do
+    #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out ; cat /tmp/curl.out" > curl.out 
+    #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, sshell "curl -s ${RANGE} ${CCBASE}/,, > /tmp/curl.gz" 
+    #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, sshell "curl -s ${RANGE} ${CCBASE}/,, > /tmp/curl.gz ; file /tmp/curl.gz" 
+    #cat ${TMP_DIR}/index-wat | parallel -j10 sshell "curl -s -r 0-1000000 https://commoncrawl.s3.amazonaws.com/crawl-data/CC-MAIN-2019-43/segments/1570986647517.11/wat/CC-MAIN-20191013195541-20191013222541-00004.warc.wat.gz > /tmp/curl.gz ; file /tmp/curl.gz" 
+    #cat ${TMP_DIR}/index-wat | parallel -n0 -j10 -I,, --env sshell "sshell \"curl -s -r 0-1000000 https://commoncrawl.s3.amazonaws.com/crawl-data/CC-MAIN-2019-43/segments/1570986647517.11/wat/CC-MAIN-20191013195541-20191013222541-00004.warc.wat.gz | zcat -q\"" 
+    #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, --env sshell "sshell \"curl -s ${RANGE} ${CCBASE}/,, \"" 
+    #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, --env sshell "sshell \"curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \\\$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' \""  
+    cat ${TMP_DIR}/index-wat | parallel -j10 -I,, --env sshell "sshell \"curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \\\",\\\" \\\"\\\n\\\" | sed 's/url\\\"/& /g' | sed 's/:\\\"/& /g' | grep \\\"url\\\" | grep http: | awk '{print \\\$3}' | sed s/[\\\",]//g | awk -F/ '{print \\\$3}' | cut -f1 -d":" | cut -f1 -d'\\\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\\\$i]++}END{for(k in result) print k,result[k]}' \""  
+    #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, --env sshell "sshell \"curl -s ${RANGE} ${CCBASE}/,, | zcat \""  
+    #sshell "curl -s -r 0-1000000 https://commoncrawl.s3.amazonaws.com/crawl-data/CC-MAIN-2019-43/segments/1570986647517.11/wat/CC-MAIN-20191013195541-20191013222541-00004.warc.wat.gz | zcat -q" 
+    #cat ${TMP_DIR}/index-wat | parallel sshell "echo test"
+    #cat ${TMP_DIR}/index-wat | parallel -I,, curl -s ${RANGE} ${CCBASE}/,, | zcat -q 
+  #done
+  #sshell "curl -s ${RANGE} ${CCBASE}/${SEGMENT} | zcat -q"
+  #cat ${TMP_DIR}/index-wat | parallel echo
+  #cat ${TMP_DIR}/index-wat | parallel -I,, --env sshell "sshell --async \"\\\$(curl -s ${RANGE} ${CCBASE}/,, \"" 
 
   clock2=`date +%s`
   durationcurl=`expr $clock2 - $clock1`
   #durationinvoke=`expr $duration - 100`
 
-  #echo overall duration curl: $durationinvoke seconds
-  avgdurationcurl=$((durationcurl/6)) 
+  echo overall duration curl: $durationcurl seconds
+  #avgdurationcurl=$((durationcurl/6)) 
 
-  echo average duration of lambda curl: $avgdurationcurl seconds
+  #echo average duration of lambda curl: $avgdurationcurl seconds
 
 }
 
@@ -467,19 +535,21 @@ measure_parallel_lambda_curl_process(){
 
   clock1=`date +%s`
 
-  for i in {1..4}; do
-    cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out ; cat /tmp/curl.out | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountbreakdown.out 
+  #for i in {1..4}; do
+    #cat ${TMP_DIR}/index-wat | parallel -j200 sleep 1 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out ; cat /tmp/curl.out | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' " > domaincountbreakdown.out 
+    #cat ${TMP_DIR}/index-wat | parallel -j200 sshell "sleep 10"  
+
     #cat ${TMP_DIR}/index-wat | parallel -j40 -I,, --env sshell "curl -s ${RANGE} ${CCBASE}/,, | zcat -q | tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out "     
-  done
+  #done
 
   clock2=`date +%s`
   durationcurlprocess=`expr $clock2 - $clock1`
   #durationinvoke=`expr $duration - 100`
 
-  #echo overall duration curl: $durationinvoke seconds
-  avgdurationcurlprocess=$((durationcurlprocess/4)) 
+  echo overall duration curl process: $durationcurlprocess seconds
+  #avgdurationcurlprocess=$((durationcurlprocess/4)) 
 
-  echo average duration of lambda curl process: $avgdurationcurlprocess seconds
+  #echo average duration of lambda curl process: $avgdurationcurlprocess seconds
 
   wc -l domaincountbreakdown.out > domaincountbeforemergeall.out
   clock3=`date +%s`
@@ -554,7 +624,9 @@ domaincount_breakdown(){
   accinvokelambdatime=0
   while read l; do
 	  clock5=`date +%s`
-	  sshell "(clock1=\`date +%s%N\` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=\`date +%s%N\` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl nanoseconds > /tmp/durationcurl) | (clock3=\`date +%s%N\` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess nanoseconds) > /tmp/domaincount.out ; sed -i '/^$/d' /tmp/domaincount.out ; map -n mapdomains size ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum  " 2> domaincountshellbreakdown.out
+	  #sshell "(clock1=\`date +%s%N\` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=\`date +%s%N\` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl nanoseconds > /tmp/durationcurl) | (clock3=\`date +%s%N\` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess nanoseconds) > /tmp/domaincount.out ; sed -i '/^$/d' /tmp/domaincount.out ; map -n mapdomains size ; map -n mapdomains mergeAll \$(cat /tmp/domaincount.out | awk '{s=s\" -1 \"\$1\"=\"\$2}END{print s}') -2 sum  "
+	  #sshell "(clock1=\`date +%s%N\` ; curl -s ${RANGE} ${CCBASE}/${l} ; clock2=\`date +%s%N\` ; durationcurl=\`expr \$clock2 - \$clock1\` ; echo durationcurl: \$durationcurl nanoseconds > /tmp/durationcurl) | (clock3=\`date +%s%N\` ; zcat -q |  tr \",\" \"\n\" | sed 's/url\"/& /g' | sed 's/:\"/& /g' | grep \"url\" | grep http | awk '{print \$3}' | sed s/[\\\",]//g | awk -F/ '{print \$3}' | cut -f1 -d":" | cut -f1 -d'\' | cut -f1 -d"?" | awk '{for(i=1;i<=NF;i++) result[\$i]++}END{for(k in result) print k,result[k]}' ; clock4=\`date +%s%N\` ; durationprocess=\`expr \$clock4 - \$clock3\`  ; cat /tmp/durationcurl ; echo durationprocess: \$durationprocess nanoseconds) "
+	  #sshell "curl -s ${RANGE} ${CCBASE}/${l} > /tmp/curl.gz ; file /tmp/curl.gz"
 	 #sshell "test" 2> test.out
 	 let "icount+=1"
 	 echo counter: $icount 
@@ -562,7 +634,7 @@ domaincount_breakdown(){
 	 echo time to invocate lambda: `expr $clock6 - $clock5`
 	 durationinvokelambda=`expr $clock6 - $clock5`
 	 let "accinvokelambdatime+=$durationinvokelambda"
-  done < ${TMP_DIR}/index-wat > domaincountbreakdown.out
+  done < ${TMP_DIR}/index-wat
 
   echo "accumulated time to invoke lambda: $accinvokelambdatime seconds"
 
@@ -761,8 +833,9 @@ terasort(){
 #domaincount_local
 #buildperfbreakdownsummary "testio.in"
 #domaincount_parallel_breakdown
-measure_parallel_lambda_invocation
-#measure_parallel_lambda_curl
+#measure_parallel_lambda_invocation
+#measure_parallel_echo
+measure_parallel_lambda_curl
 #measure_parallel_lambda_curl_process
 #lambda_dl_watindex
 #local_sleep
