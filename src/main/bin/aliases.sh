@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
-export SERVER=%SERVER%
-export CLASSPATH=/var/task/*:/var/task/lib/*
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source ${DIR}/utils.sh
+
+export SERVER=$(config crucial.server)
+export CLASSPATH=${DIR}/*:${DIR}/lib/*:/opt/java/lib/*
 
 counter(){
     java org.crucial.dso.client.Interpreter -s ${SERVER} counter $@

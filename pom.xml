@@ -4,46 +4,93 @@
     <groupId>org.crucial</groupId>
     <artifactId>serverless-shell</artifactId>
     <name>serverless-shell</name>
-    <description>A shell .</description>
-    <version>1.0</version>
+    <description>A shell for serverless.</description>
+    <version>2.0</version>
+
+    <properties>
+        <maven.compiler.source>1.11</maven.compiler.source>
+        <maven.compiler.target>1.11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <version.dso>2.0</version.dso>
+        <version.slf4j-simple>1.7.28</version.slf4j-simple>
+        <version.jboss-logging>1.0.0.Final</version.jboss-logging>
+        <version.graalvm>20.2.0</version.graalvm>
+        <version.aws.lambda.java>1.2.1</version.aws.lambda.java>
+        <version.software.amazon.awssdk-lambda>2.15.26</version.software.amazon.awssdk-lambda>
+        <version.apache.httpclient>4.5.13</version.apache.httpclient>
+        <version.gson>2.8.6</version.gson>
+        <project.skip-native-image>true</project.skip-native-image>
+    </properties>
 
     <dependencies>
 
         <dependency>
             <groupId>org.crucial</groupId>
-            <artifactId>executor</artifactId>
-            <version>1.0</version>
+            <artifactId>dso-client</artifactId>
+            <version>2.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.crucial</groupId>
-            <artifactId>dso-client</artifactId>
-            <version>1.0</version>
+            <artifactId>dso-core</artifactId>
+            <version>${version.dso}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>graal-sdk</artifactId>
+            <version>${version.graalvm}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>commons-logging-jboss-logging</artifactId>
+            <version>${version.jboss-logging}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>${version.aws.lambda.java}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${version.gson}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>lambda</artifactId>
+            <version>${version.software.amazon.awssdk-lambda}</version>
+        </dependency>
+
+        <!-- fixme -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${version.slf4j-simple}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${version.apache.httpclient}</version>
+        </dependency>
+
 
     </dependencies>
 
-    <properties>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <build>
-        <resources>
-            <resource>
-                <directory>${project.basedir}/src/main/resources</directory>
-            </resource>
-            <resource>
-                <directory>${project.basedir}/src/main/bin</directory>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.8.0</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <release>11</release>
                 </configuration>
             </plugin>
             <plugin>
@@ -63,7 +110,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-		<version>3.0.0</version>
+                <version>3.0.0</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -72,8 +119,57 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>${version.graalvm}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>native-image</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>${project.skip-native-image}</skip>
+                    <imageName>sshell.bin</imageName>
+                    <buildArgs>
+                        --no-fallback
+                        --no-server
+                        --allow-incomplete-classpath
+                        --enable-http
+                        --enable-https
+                        --enable-url-protocols=http,https
+                        --enable-all-security-services
+                        -H:+ReportUnsupportedElementsAtRuntime
+                        -H:+TraceClassInitialization
+                        -H:IncludeResources='resources/simplerlogger.properties'
+                        --allow-incomplete-classpath
+                        --initialize-at-build-time=org.slf4j.impl.SimpleLogger,org.slf4j.impl.StaticLoggerBinder,org.slf4j.simple.SimpleLogger,org.slf4j.LoggerFactory,org.apache.commons.logging.LogFactory
+                        -H:DynamicProxyConfigurationResources=proxies.json
+                    </buildArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
 </project>
-    
+

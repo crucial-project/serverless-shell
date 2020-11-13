@@ -1,99 +1,140 @@
 package org.crucial.shell;
 
-import org.crucial.executor.Config;
-import org.crucial.executor.aws.AWSLambdaExecutorService;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.*;
 
-import java.io.*;
-import java.nio.charset.Charset;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.*;
-import java.util.concurrent.Future;
 
 public class SShell {
 
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_RED = "\u001B[31m";
-    public static final String ASYNC_FLAG = "--async";
-    public static final String ALIASES = "source /var/task/aliases.sh; "; // FIXME
+    public static final String ALIASES = "source /var/task/aliases.sh;";
 
-    public static String readFile(String path, Charset encoding)
-            throws IOException
-    {
-        byte[] encoded = Files.readAllBytes(Paths.get(path));
-        return new String(encoded, encoding);
-    }
+    public static final String ASYNC_FLAG = "--async";
+    public static final String CMD_FLAG = "-c";
+    public static final String SCRIPT_FLAG = "-f";
+    public static final String USAGE = "usage: ("+CMD_FLAG+"|"+SCRIPT_FLAG+") "+"[--async] (command|script_file)";
+
+    private List<String> cmd = null;
+
+    private String script = null;
+
+    private Properties properties = System.getProperties();
+    private boolean asynchronous;
+    private boolean debug;
+    private LambdaClient lambdaClient;
+    private String region;
+    private String arn;
 
     public static void main(String[] args) {
+        new SShell().doMain(args);
+    }
 
-        Properties properties = System.getProperties();
-	boolean asynchronous = false;
-	
-        try (InputStream is = SShell.class.getClassLoader().getResourceAsStream(Config.CONFIG_FILE)) {
+    public void doMain(String[] args) {
+
+        if (args.length<=1) {
+            usage();
+        }
+
+        try {
+            // Command
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(ALIASES+" ");
+            if (args[1].equals(ASYNC_FLAG)) asynchronous = true;
+            switch (args[0]) {
+                case CMD_FLAG:
+                    for(String c : args){
+                        if (!c.equals(ASYNC_FLAG) && !c.equals(CMD_FLAG) ) {
+                            stringBuilder.append(c + " ");
+                        }
+                    }
+                    break;
+                case SCRIPT_FLAG:
+                    Path file = Paths.get(asynchronous ? args[2]: args[1]);
+                    Files.lines(file).filter(l -> !l.startsWith("#")).forEach(l -> stringBuilder.append(l));
+                    break;
+                default:
+                    usage();
+            }
+            String command = stringBuilder.toString();
+
+            // Configuration
+            Path path = Paths.get(Config.CONFIG_FILE);
+            InputStream is = new ByteArrayInputStream(Files.readAllBytes(path));
             properties.load(is);
-        } catch (IOException e) {
+
+            region = properties.containsKey(Config.AWS_LAMBDA_REGION) ?
+                    properties.getProperty(Config.AWS_LAMBDA_REGION) : Config.AWS_LAMBDA_REGION_DEFAULT;
+            arn = properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ARN) ?
+                    properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ARN) : Config.AWS_LAMBDA_FUNCTION_ARN_DEFAULT;
+            debug = Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_DEBUG) ?
+                    properties.getProperty(Config.AWS_LAMBDA_DEBUG) : Config.AWS_LAMBDA_DEBUG_DEFAULT);
+            asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
+                    properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
+            lambdaClient = LambdaClient.builder()
+                    .region(Region.of(region))
+                    .build();
+
+            // Invoke
+            GetFunctionRequest gf = GetFunctionRequest.builder().functionName(arn).build();
+            lambdaClient.getFunction(gf);
+
+            InvokeRequest.Builder requestTuilder = InvokeRequest.builder();
+            requestTuilder.functionName(arn);
+            if (asynchronous) {
+                requestTuilder.invocationType(InvocationType.EVENT);
+            } else {
+                requestTuilder.invocationType(InvocationType.REQUEST_RESPONSE);
+            }
+            requestTuilder.payload(SdkBytes.fromByteArray(Json.toJson(command).getBytes()));
+            if (debug) {
+                debug("[async="+asynchronous+"] "+command);
+                requestTuilder.logType(LogType.TAIL);
+            }
+
+            // Response
+            InvokeResponse response = lambdaClient.invoke(requestTuilder.build());
+            assert response != null;
+            if (debug) {
+                if (!asynchronous) {
+                    String log = new String(Base64.getDecoder().decode(response.logResult()));
+                    for (String line : log.split(System.getProperty("line.separator"))) {
+                        debug(line);
+                    }
+                }
+            }
+
+            String[] ret = Json.fromJson(response.payload().asUtf8String());
+            if (ret != null) {
+                System.err.print(ret[1]);
+                System.out.print(ret[0]);
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
-        if (args.length>0 && args[0].equals(ASYNC_FLAG)){
-	    asynchronous = true;
-            properties.setProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC,"true");
-        }
+        System.exit(0);
 
-        ExecutorService service = new AWSLambdaExecutorService(properties);
+    }
 
-        StringBuilder builder = new StringBuilder();
-        builder.append(ALIASES);
-        for (String str: args) {
-            if (str.equals(ASYNC_FLAG)) continue;;
-            builder.append(str);
-            builder.append(" ");
-        }
-        String command = builder.toString();
+    private void usage(){
+        System.err.println(USAGE);
+        System.exit(-1);
+    }
 
-        Future<String[]> future = service.submit((Serializable & Callable<String[]>)()-> {
-            String stdout = "";
-            String stderr = command+"\n";
-            try {
-                ProcessBuilder b = new ProcessBuilder("/bin/sh", "-c", command);
-                Process p  = b.start();
-                BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                BufferedReader stdError = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-                StringBuilder sibuilder = new StringBuilder();
-                StringBuilder sobuilder = new StringBuilder();
-                java.util.Scanner s = new java.util.Scanner(stdInput).useDelimiter("\\A");
-                if (s.hasNext()) {
-                    sibuilder.append(s.next());
-                }
-                s = new java.util.Scanner(stdError).useDelimiter("\\A");
-                if (s.hasNext()) {
-                    sobuilder.append(s.next());
-                }
-                p.waitFor();
-                stdout += sibuilder.toString();
-                stderr += sobuilder.toString();
-            } catch (IOException| InterruptedException e) {
-                stderr += e.getMessage();
-            }
-            String[] ret = {stdout,stderr};
-            return ret;
-        });
-
-	try {
-	    String[] ret = future.get();
-	    if(ret!=null) {
-		System.err.print(ANSI_RED + ret[1] + ANSI_RESET);
-		System.out.print(ret[0]);
-	    }
-	} catch (InterruptedException | ExecutionException e) { // FIXME
-	    if ( !(asynchronous && e instanceof ExecutionException) ) {
-		e.printStackTrace();
-	    }
-	}
-
-	System.exit(0);
+    private static void debug(String message){
+        System.err.println(ANSI_RED + message + ANSI_RESET);
     }
 
 }
