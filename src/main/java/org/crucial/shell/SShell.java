@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
@@ -53,10 +54,8 @@ public class SShell {
             if (args[1].equals(ASYNC_FLAG)) asynchronous = true;
             switch (args[0]) {
                 case CMD_FLAG:
-                    for(String c : args){
-                        if (!c.equals(ASYNC_FLAG) && !c.equals(CMD_FLAG) ) {
-                            stringBuilder.append(c + " ");
-                        }
+                    for(String c : Arrays.copyOfRange(args, asynchronous ? 2 : 1, args.length)){
+                        stringBuilder.append(c + " ");
                     }
                     break;
                 case SCRIPT_FLAG:
