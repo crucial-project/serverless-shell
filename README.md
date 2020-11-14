@@ -14,7 +14,7 @@ Work is in progress to include other services (e.g., knative).
 	export ACCOUNT=%AWS_ACCOUNT_ID%
 	export ROLE_NAME=%AWS_IAM_ROLE_NAME% # the role must have access to AWS Lambda
 	cat serverless-shell-2.0/config.properties.tmpl | sed s,ACCOUNT,${ACCOUNT},g | sed s,ROLE_NAME,${ROLE_NAME},g > config.properties
-	sed -i s,FUNCTION_ARN,$(./serverless-shell-2.0/deploy.sh -create | grep FunctionArn | awk '{print $2}' | sed s,[\"\,],,g),g config.properties
+	export CONFIG_DIR=.; sed -i s,FUNCTION_ARN,$(./serverless-shell-2.0/deploy.sh -create | grep FunctionArn | awk '{print $2}' | sed s,[\"\,],,g),g config.properties
 	source ./serverless-shell-2.0/utils.sh
  	sshell ls # check that evrything works
 
