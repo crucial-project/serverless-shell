@@ -35,7 +35,7 @@ For instance, the `average` function in `commoncrawl.sh` evaluates the average w
 ## Stateful computation
 
 Side effects when executing `sshell` are possible using a shared objects layer.
-To access this feature, it is necessary to launch one (or more) DSO servers, as explained in the installation [guide](https://github.com/crucial-project/dso).
+To access this feature, it is necessary to launch one (or more) DSO servers, as explained in the installation [guide](https://github.com/crucial-project/dso/tree/2.0).
 Once this is done, indicate the entry point of the DSO layer in `config.properties` with variable `crucial.server` (whose default value is `IP:PORT`).
 Then, re-install the serverless shell (`deploy.sh -delete; deploy.sh -create`).
 To check that everything works fine, you may run `examples/tests-stateful.sh`.
