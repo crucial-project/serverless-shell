@@ -39,6 +39,15 @@ then
         --license-info "Apache" \
         --content S3Bucket=${AWS_S3_BUCKET},S3Key=${AWS_S3_KEY} \
         --compatible-runtimes java11
+    # FIXME
+    aws lambda add-layer-version-permission \
+	--layer-name serverless-bash \
+	--statement-id rights \
+	--version-number 15 \
+	--principal '*' \
+	--action lambda:GetLayerVersion \
+	--output text \
+	--region=${AWS_REGION}
 elif [[ "$1" == "-delete" ]]
 then
     echo "NYI"
