@@ -16,7 +16,7 @@
         <version.jboss-logging>1.0.0.Final</version.jboss-logging>
         <version.graalvm>19.3.0</version.graalvm>
         <version.aws.lambda.java>1.2.1</version.aws.lambda.java>
-        <version.software.amazon.awssdk-lambda>2.15.26</version.software.amazon.awssdk-lambda>
+        <version.software.amazon.awssdk>2.15.26</version.software.amazon.awssdk>
         <version.apache.httpclient>4.5.13</version.apache.httpclient>
         <version.gson>2.8.6</version.gson>
         <project.skip-native-image>true</project.skip-native-image>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>lambda</artifactId>
-            <version>${version.software.amazon.awssdk-lambda}</version>
+            <version>${version.software.amazon.awssdk}</version>
 	    <exclusions>
               <exclusion>
 		<groupId>software.amazon.awssdk</groupId>
@@ -80,7 +80,7 @@
 	<dependency>
 	  <groupId>software.amazon.awssdk</groupId>
 	  <artifactId>url-connection-client</artifactId>
-	  <version>${version.software.amazon.awssdk-lambda}</version>
+	  <version>${version.software.amazon.awssdk}</version>
 	</dependency>
 
         <!-- fixme -->
