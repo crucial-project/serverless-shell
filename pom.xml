@@ -14,7 +14,7 @@
         <version.dso>2.0</version.dso>
         <version.slf4j-simple>1.7.28</version.slf4j-simple>
         <version.jboss-logging>1.0.0.Final</version.jboss-logging>
-        <version.graalvm>20.2.0</version.graalvm>
+        <version.graalvm>19.3.0</version.graalvm>
         <version.aws.lambda.java>1.2.1</version.aws.lambda.java>
         <version.software.amazon.awssdk-lambda>2.15.26</version.software.amazon.awssdk-lambda>
         <version.apache.httpclient>4.5.13</version.apache.httpclient>
@@ -65,7 +65,23 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>lambda</artifactId>
             <version>${version.software.amazon.awssdk-lambda}</version>
+	    <exclusions>
+              <exclusion>
+		<groupId>software.amazon.awssdk</groupId>
+		<artifactId>apache-client</artifactId>
+              </exclusion>
+              <exclusion>
+		<groupId>software.amazon.awssdk</groupId>
+		<artifactId>netty-nio-client</artifactId>
+              </exclusion>
+	    </exclusions>
         </dependency>
+
+	<dependency>
+	  <groupId>software.amazon.awssdk</groupId>
+	  <artifactId>url-connection-client</artifactId>
+	  <version>${version.software.amazon.awssdk-lambda}</version>
+	</dependency>
 
         <!-- fixme -->
         <dependency>
@@ -147,7 +163,6 @@
                         -H:IncludeResources='resources/simplerlogger.properties'
                         --allow-incomplete-classpath
                         --initialize-at-build-time=org.slf4j.impl.SimpleLogger,org.slf4j.impl.StaticLoggerBinder,org.slf4j.simple.SimpleLogger,org.slf4j.LoggerFactory,org.apache.commons.logging.LogFactory
-                        -H:DynamicProxyConfigurationResources=proxies.json
                     </buildArgs>
                 </configuration>
             </plugin>
