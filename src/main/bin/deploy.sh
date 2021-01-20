@@ -20,6 +20,8 @@ AWS_ROLE=$(config aws.iam.role)
 AWS_LAMBDA_FUNCTION_NAME=$(config aws.lambda.function.name)
 AWS_LAMBDA_FUNCTION_HANDLER=$(config aws.lambda.function.handler)
 
+LAYER_VERSION=22
+
 if [[ "$1" == "-create" ]]
 then
     APP_JAR="$(config app)-$(config version).jar"
@@ -35,7 +37,7 @@ then
     aws lambda create-function \
 	--region=${AWS_REGION} \
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
-    	--layers arn:aws:lambda:us-east-1:667743079194:layer:serverless-bash:21 \
+    	--layers arn:aws:lambda:us-east-1:667743079194:layer:serverless-bash:${LAYER_VERSION} \
     	--runtime java11 \
     	--timeout 30 \
     	--memory-size 1024 \
