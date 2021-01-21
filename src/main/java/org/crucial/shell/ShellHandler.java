@@ -6,7 +6,6 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 
 public class ShellHandler implements RequestHandler<String, String[]> {
 

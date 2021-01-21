@@ -65,23 +65,23 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>lambda</artifactId>
             <version>${version.software.amazon.awssdk}</version>
-	    <exclusions>
-              <exclusion>
-		<groupId>software.amazon.awssdk</groupId>
-		<artifactId>apache-client</artifactId>
-              </exclusion>
-              <exclusion>
-		<groupId>software.amazon.awssdk</groupId>
-		<artifactId>netty-nio-client</artifactId>
-              </exclusion>
-	    </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>apache-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-	<dependency>
-	  <groupId>software.amazon.awssdk</groupId>
-	  <artifactId>url-connection-client</artifactId>
-	  <version>${version.software.amazon.awssdk}</version>
-	</dependency>
+        <dependency>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>url-connection-client</artifactId>
+          <version>${version.software.amazon.awssdk}</version>
+        </dependency>
 
         <!-- fixme -->
         <dependency>
