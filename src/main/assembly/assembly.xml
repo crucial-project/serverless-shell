@@ -34,6 +34,10 @@
             <directory>${project.basedir}/examples</directory>
             <outputDirectory>/examples</outputDirectory>
         </fileSet>
+	<fileSet>
+            <directory>${project.basedir}/target/lib</directory>
+            <outputDirectory>lib</outputDirectory>
+        </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
             <outputDirectory>/</outputDirectory>
