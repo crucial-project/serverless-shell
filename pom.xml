@@ -25,18 +25,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.crucial</groupId>
-            <artifactId>dso-client</artifactId>
-            <version>2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.crucial</groupId>
-            <artifactId>dso-core</artifactId>
-            <version>${version.dso}</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.graalvm.sdk</groupId>
             <artifactId>graal-sdk</artifactId>
             <version>${version.graalvm}</version>
@@ -83,7 +71,8 @@
           <version>${version.software.amazon.awssdk}</version>
         </dependency>
 
-        <!-- fixme -->
+        <!-- /* FIXME -->
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
@@ -95,7 +84,22 @@
             <artifactId>httpclient</artifactId>
             <version>${version.apache.httpclient}</version>
         </dependency>
+	
+        <dependency>
+            <groupId>org.crucial</groupId>
+            <artifactId>dso-client</artifactId>
+            <version>2.0</version>
+	    <scope>test</scope>
+        </dependency>
 
+        <dependency>
+            <groupId>org.crucial</groupId>
+            <artifactId>dso-core</artifactId>
+            <version>${version.dso}</version>
+	    <scope>test</scope>
+        </dependency>
+
+	<!-- FIXME */ -->
 
     </dependencies>
 
@@ -162,7 +166,7 @@
                         -H:+TraceClassInitialization
                         -H:IncludeResources='resources/simplerlogger.properties'
                         --allow-incomplete-classpath
-                        --initialize-at-build-time=org.slf4j.impl.SimpleLogger,org.slf4j.impl.StaticLoggerBinder,org.slf4j.simple.SimpleLogger,org.slf4j.LoggerFactory,org.apache.commons.logging.LogFactory
+                        --initialize-at-build-time=org.slf4j.impl.SimpleLoggerFactory,org.slf4j.impl.SimpleLogger,org.slf4j.impl.SimpleLoggerConfiguration,org.slf4j.impl.StaticLoggerBinder,org.slf4j.simple.SimpleLogger,org.slf4j.LoggerFactory,org.apache.commons.logging.LogFactory,org.slf4j.helpers.SubstituteLoggerFactory,org.slf4j.helpers.Util,org.slf4j.helpers.NOPLoggerFactory,org.slf4j.impl.OutputChoice
                     </buildArgs>
                 </configuration>
             </plugin>

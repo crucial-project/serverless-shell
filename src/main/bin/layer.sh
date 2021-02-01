@@ -30,7 +30,7 @@ AWS_S3_KEY=$(config aws.s3.key)
 
 if [[ "$1" == "-create" ]]
 then
-    mvn clean package -DskipTests -f ${PROJ_DIR}
+    mvn package -DskipTests -f ${PROJ_DIR}
     rm -Rf ${ZIP_DIR}
     mkdir -p ${ZIP_DIR} ${ZIP_DIR}/bin ${ZIP_DIR}/java/lib ${ZIP_DIR}/var/task
     # dependencies
