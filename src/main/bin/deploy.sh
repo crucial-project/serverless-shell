@@ -19,12 +19,10 @@ AWS_REGION=$(config aws.region)
 AWS_ROLE=$(config aws.iam.role)
 AWS_LAMBDA_FUNCTION_NAME=$(config aws.lambda.function.name)
 AWS_LAMBDA_FUNCTION_HANDLER=$(config aws.lambda.function.handler)
-
-LAYER_VERSION=23
+LAYER_VERSION=$(aws lambda list-layer-versions --layer-name serverless-bash --region ${AWS_REGION} --query 'LayerVersions[0].LayerVersionArn' | awk -F: '{print $8}'| sed s/\"//g )
 
 if [[ "$1" == "-create" ]]
 then
-    APP_JAR="$(config app)-$(config version).jar"
     rm -Rf ${ZIP_DIR}
     mkdir -p ${ZIP_DIR}
     # application
