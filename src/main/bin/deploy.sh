@@ -35,7 +35,7 @@ then
     aws lambda create-function \
 	--region=${AWS_REGION} \
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
-    	--layers arn:aws:lambda:us-east-1:667743079194:layer:serverless-bash:${LAYER_VERSION} \
+    	--layers arn:aws:lambda:us-east-1:462442596587:layer:serverless-bash:${LAYER_VERSION} \
     	--runtime java11 \
     	--timeout 30 \
     	--memory-size 1024 \
