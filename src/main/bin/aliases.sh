@@ -26,8 +26,14 @@ barrier(){
     java org.crucial.dso.client.Interpreter -s ${SERVER} barrier $@
 }
 
+pipe(){
+    java org.crucial.dso.client.Interpreter -s ${SERVER} pipe $@
+}
+
+
 export -f counter
 export -f list
 export -f map
 export -f treemap
 export -f barrier
+export -f pipe
