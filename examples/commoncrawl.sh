@@ -5,7 +5,7 @@ TMP_DIR=/tmp/$(whoami)
 
 CCBASE="http://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=60000
+INPUT=24000
 RANGE="-r 0-10000000"
 
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
@@ -130,6 +130,17 @@ buildperfbreakdownsummary() {
 
 }
 
+domaincount_mergeall_stateless()
+{
+
+  #clock3=`date +%s`
+  FILE=$1
+  echo "Merge $1"
+  awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' "$FILE"  >> domaincounttmpmerged.out
+  
+  awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincounttmpmerged.out > domaincountmerged.out
+
+}
 
 domaincount_parallel_stateless(){
 
@@ -150,7 +161,7 @@ domaincount_parallel_stateless(){
   | cut -f1 -d"=" 
   | cut -f1 -d"'#'" 
   | sed 's/\\\"//g'
-  | awk '{for(i=1;i<=NF;i++) result[\\\$i]++}END{for(k in result) print k,result[k]}' ; clock3=\\\$(date +%s%N) ; durationio=\\\$(expr \\\$clock2 - \\\$clock1) ; durationprocess=\\\$(expr \\\$clock3 - \\\$clock2) ; echo clock1 \\\$clock1 ; echo clock2 \\\$clock2 ; echo clock3 \\\$clock3 ; echo durationio = \\\$durationio ; echo durationprocess = \\\$durationprocess \"" > domaincountbreakdown.out 
+  | awk '{for(i=1;i<=NF;i++) result[\\\$i]++}END{for(k in result) print k,result[k]}' > /tmp/domaincount.out ; awk '{ domain[\\\$1] += \\\$2 } END { for (i in domain) print i, domain[i] }' /tmp/domaincount.out ; clock3=\\\$(date +%s%N) ; durationio=\\\$(expr \\\$clock2 - \\\$clock1) ; durationprocess=\\\$(expr \\\$clock3 - \\\$clock2) ; echo clock1 \\\$clock1 ; echo clock2 \\\$clock2 ; echo clock3 \\\$clock3 ; echo durationio = \\\$durationio ; echo durationprocess = \\\$durationprocess \"" > domaincountbreakdown.out 
 
   clock2=`date +%s`
   duration=`expr $clock2 - $clock1`
@@ -161,25 +172,58 @@ domaincount_parallel_stateless(){
   echo "Number of lines before mergeAll "
   cat domaincountbeforemergeall.out
 
-  #awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincountbreakdown.out > domaincountbreakdownmerged.out
-  #cat domaincountbreakdownmerged.out | sort -k 2 -n -r > domaincountbreakdownmergedsorted.out
-  #echo sync duration: $durationsync seconds
+  clock3=`date +%s`
+  
+  echo "MergeAll step"
+  rm -rf sync*
+  split --number=l/10 domaincountbreakdown.out sync
+  touch domaincounttmpmerged.out
+  echo "Partial MergeAll"
 
+  for filesync in sync*; do
+    echo "Local MergeAll $filesync"
+    awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' $filesync >> domaincounttmpmerged.out & 
+  done
+
+  clock4=`date +%s`
+  #durationpartialsync=`expr $clock4 - $clock3`
+  #echo partial sync duration: $durationpartialsync seconds
+
+  echo "Global MergeAll"
+  #awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincountbreakdown.out > domaincountmerged.out
+  awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' domaincounttmpmerged.out > domaincountmerged.out
+
+  #awk 'BEGIN {FS = " "} {domain[$1] += $2} END {for (key in domain) {print key, domain[key]}}' sync* > domaincountmerged.out
+  #touch domaincounttmpmerged.out
+  #parallel -j100 awk '{ domain[$1] += $2 } END { for (i in domain) print i, domain[i] }' ::: sync*  >> domaincounttmpmerged.out
+
+  #touch domaincounttmpmerged.out
+  #cat sync* >> domaincounttmpmerged.out
+
+  clock5=`date +%s`
+
+  durationglobalsync=`expr $clock5 - $clock4`
+  echo global sync duration: $durationglobalsync seconds
+
+  echo "Sort step"
+  cat domaincountmerged.out | sort -k 2 -n -r > domaincountmergedsorted.out
+  clock6=`date +%s`
+  durationsort=`expr $clock6 - $clock5`
+  echo sort duration: $durationsort seconds
+
+
+  head -n 100 domaincountmergedsorted.out
 }
 
 domaincount_parallel_stateful()
 {
-  LAMBDA=$(($(wc -l ${TMP_DIR}/index-wat | awk '{print $1}')+1))
-  BARRIER=$(uuid)
-
   sshell treemap -n mapdomains clear
   echo "Size of DSO map mapdomains before mergeAll: "
   sshell treemap -n mapdomains size
 
   clock1=`date +%s`
-  #cat ${TMP_DIR}/index-wat | parallel -j10 -I,, --env sshell "sshell \"curl -s ${RANGE} ${CCBASE}/,, | zcat -q > /tmp/curl.out ; cat /tmp/curl.out  | tr \",\" \"\n\" | sed 's/url\\\"/& /g' | sed 's/:\\\"/& /g' | grep \"url\" | grep http: | awk '{print \$3}' | sed s/[\\\\\",]//g | awk -F '{print \$3}' \""
 
-  cat ${TMP_DIR}/index-wat | parallel -j400 -I,, --env sshell "sshell \" clock1=\\\$(date +%s%N) ; curl -s ${RANGE} ${CCBASE}/,, 
+  cat ${TMP_DIR}/index-wat | parallel -j500 -I,, --env sshell "sshell \" clock1=\\\$(date +%s%N) ; curl -s ${RANGE} ${CCBASE}/,, 
   | zcat -q > /tmp/curl.out ; clock2=\\\$(date +%s%N) ; cat /tmp/curl.out  
   | tr \\\",\\\" \\\"\n\\\" 
   | sed 's/url\\\"/& /g' 
@@ -240,6 +284,21 @@ test_map()
 # average
 #count_ips
 #test_map
-#domaincount_parallel_stateless
-domaincount_parallel_stateful
-buildperfbreakdownsummary "domaincountbreakdown.out"
+domaincount_parallel_stateless
+#clock3=`date +%s`
+#touch domaincounttmpmerged.out
+#export -f domaincount_mergeall_stateless
+#echo "mergeall stateless"
+#parallel -j10 domaincount_mergeall_stateless {} {.} ::: sync*
+#clock4=`date +%s`
+#cat domaincountbreakdownmerged.out | sort -k 2 -n -r > domaincountbreakdownmergedsorted.out
+#clock5=`date +%s`
+#head -n 100 domaincountbreakdownmergedsorted.out
+#durationsync=`expr $clock4 - $clock3`
+#durationsort=`expr $clock5 - $clock4`
+#echo sync duration: $durationsync seconds
+#echo sort duration: $durationsort seconds
+
+
+#domaincount_parallel_stateful
+#buildperfbreakdownsummary "domaincountbreakdown.out"
