@@ -32,9 +32,10 @@ if [[ "$1" == "-create" ]]
 then
     mvn package -DskipTests -f ${PROJ_DIR}
     rm -Rf ${ZIP_DIR}
-    mkdir -p ${ZIP_DIR} ${ZIP_DIR}/bin ${ZIP_DIR}/java/lib ${ZIP_DIR}/var/task
+    mkdir -p ${ZIP_DIR} ${ZIP_DIR}/bin ${ZIP_DIR}/lib ${ZIP_DIR}/java/lib ${ZIP_DIR}/var/task
     # dependencies
     cp -Rf ${LIB_DIR}/*.jar ${ZIP_DIR}/java/lib
+    cp -Rf ${DIR}/libs/* ${ZIP_DIR}/lib
     # binaries
     cp -Rf ${DIR}/tools/* ${ZIP_DIR}/bin
     # build, deploy

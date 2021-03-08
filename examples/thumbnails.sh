@@ -14,7 +14,7 @@ cat thumbnails_content.out
 
 clock1=$(date +%s)
 
-cat thumbnails_content.out | parallel -j100 -I,, --env sshell "sshell \" ./magick ${THUMBNAILSBASE}/,, \"" 
+cat thumbnails_content.out | parallel -j100 -I,, --env sshell "sshell \" magick ${THUMBNAILSBASE}/,, \"" 
 
 clock2=$(date +%s)
 
