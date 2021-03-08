@@ -5,7 +5,7 @@ THUMBNAILSBASE="s3://amaheo/thumbnails"
 echo "Display AWS S3 THUMBNAILS content : "
 #aws s3 ls $THUMBNAILSBASE/
 #aws s3 ls $THUMBNAILSBASE/ | wc -l
-#aws s3 ls $THUMBNAILSBASE/ > thumbnails_content.out
+aws s3 ls $THUMBNAILSBASE/ > thumbnails_content.out
 
 echo ""
 echo ""
