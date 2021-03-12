@@ -15,6 +15,7 @@ then
     usage
 fi
 
+AWS_ACCOUNT=$(config aws.account)
 AWS_REGION=$(config aws.region)
 AWS_ROLE=$(config aws.iam.role)
 AWS_LAMBDA_FUNCTION_NAME=$(config aws.lambda.function.name)
@@ -35,7 +36,7 @@ then
     aws lambda create-function \
 	--region=${AWS_REGION} \
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
-    	--layers arn:aws:lambda:us-east-1:462442596587:layer:serverless-bash:${LAYER_VERSION} \
+    	--layers arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT}:layer:serverless-bash:${LAYER_VERSION} \
     	--runtime java11 \
     	--timeout 30 \
     	--memory-size 1024 \

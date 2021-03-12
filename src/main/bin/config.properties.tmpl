@@ -1,7 +1,8 @@
 app=serverless-shell
 logging=false
 version=2.0
-aws.region=us-east-1
+aws.account=ACCOUNT
+aws.region=REGION
 aws.iam.role=arn:aws:iam::ACCOUNT:role/ROLE_NAME
 aws.lambda.function.name=serverless-shell
 aws.lambda.function.handler=org.crucial.shell.ShellHandler
@@ -9,3 +10,4 @@ aws.lambda.function.arn=FUNCTION_ARN
 aws.s3.bucket=BUCKET
 aws.s3.key=KEY
 crucial.server=IP:PORT
+aws.efs.root=EFS

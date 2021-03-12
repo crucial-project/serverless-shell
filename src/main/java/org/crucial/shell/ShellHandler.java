@@ -14,7 +14,7 @@ public class ShellHandler implements RequestHandler<String, String[]> {
         String stdout = "";
         String stderr = "";
         try {
-            ProcessBuilder b = new ProcessBuilder("/bin/sh", "-c", command);
+            ProcessBuilder b = new ProcessBuilder("/bin/bash", "-c", command);
             Process p  = b.start();
             BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
             BufferedReader stdError = new BufferedReader(new InputStreamReader(p.getErrorStream()));
