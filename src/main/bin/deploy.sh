@@ -20,6 +20,10 @@ AWS_REGION=$(config aws.region)
 AWS_ROLE=$(config aws.iam.role)
 AWS_LAMBDA_FUNCTION_NAME=$(config aws.lambda.function.name)
 AWS_LAMBDA_FUNCTION_HANDLER=$(config aws.lambda.function.handler)
+AWS_LAMBDA_VPC_SUBNETS=$(config aws.lambda.vpc.subnets)
+AWS_LAMBDA_VPC_SECGROUPS=$(config aws.lambda.vpc.secgroups)
+AWS_EFS_ACCESS_POINT=$(config aws.efs.accesspointid)
+AWS_EFS_LOCAL_MOUNT_PATH=$(config aws.efs.localmountpath)
 LAYER_VERSION=$(aws lambda list-layer-versions --layer-name serverless-bash --region ${AWS_REGION} --query 'LayerVersions[0].LayerVersionArn' | awk -F: '{print $8}'| sed s/\"//g )
 
 if [[ "$1" == "-create" ]]
@@ -43,6 +47,11 @@ then
     	--role ${AWS_ROLE} \
     	--handler ${AWS_LAMBDA_FUNCTION_HANDLER} \
     	--zip-file fileb://${ZIP_DIR}/code.zip
+   ARN=arn:aws:elasticfilesystem:${AWS_REGION}:${AWS_ACCOUNT}:access-point/${AWS_EFS_ACCESS_POINT}
+   aws lambda update-function-configuration --function-name ${AWS_LAMBDA_FUNCTION_NAME} \
+	--file-system-configs Arn=$ARN,LocalMountPath=${AWS_EFS_LOCAL_MOUNT_PATH} \
+	--vpc-config SubnetIds=${AWS_LAMBDA_VPC_SUBNETS},SecurityGroupIds=${AWS_LAMBDA_VPC_SECGROUPS}
+   
 elif [[ "$1" == "-delete" ]]
 then
     aws lambda delete-function \
