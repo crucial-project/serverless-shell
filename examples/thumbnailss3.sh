@@ -5,8 +5,6 @@ AWSREGION="s3-website-us-east-1"
 THUMBNAILSBASES3="s3://amaheo/thumbnails"
 THUMBNAILSBASEZONE="http://amaheo.s3-website-us-east-1.amazonaws.com/thumbnails"
 THUMBNAILSBASE="http://amaheo.s3.amazonaws.com/thumbnails"
-S3KEYACCESSID="AKIAWXK52BDV6APJHZJN"
-S3SECRETKEY="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"
 SIGNATURE=`echo -en ${stringToSign} | openssl sha1 -hmac ${S3SECRETKEY} -binary | base64`
 
 #file=/path/to/file/to/upload.tar.gz
