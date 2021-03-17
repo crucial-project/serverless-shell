@@ -4,8 +4,6 @@ THUMBNAILSEC2PATH=/home/ec2-user/efs/thumbnails
 THUMBNAILSLAMBDAPATH=/mnt/efsimttsp/thumbnails
 THUMBNAILSPATH=/mnt/efsimttsp/thumbnails
 
-
-
 runthumbnails()
 {
 
@@ -26,8 +24,6 @@ runthumbnails()
 	sshell "echo Number of elements in /tmp before operation: "
 	sshell "ls /tmp/ | wc -l"
 
-	  
-	sleep 2
 	echo ""
 	echo ""
 	echo START PROCESSING
@@ -36,7 +32,7 @@ runthumbnails()
 
 	clock1=`date +%s`
 
-	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; echo AFTER CLEARING /tmp : ls /tmp ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; magick convert -define png:size=300x100 /tmp/\\\$FILEINDEX -auto-orient -thumbnail 180x110 -unsharp 0x.5 /tmp/THUMBNAIL\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMBNAIL\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdowload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
+	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; echo AFTER CLEARING /tmp : ls /tmp ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; magick convert -define png:size=300x100 /tmp/\\\$FILEINDEX -auto-orient -thumbnail 180x110 -unsharp 0x.5 /tmp/THUMBNAIL\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMBNAIL\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
 
 	clock2=`date +%s`
 
@@ -46,9 +42,9 @@ runthumbnails()
 	echo ""
 	echo ""
 	echo DURATION THUMBNAILS : $durationthumbnails seconds
+	echo durationoverall = $durationthumbnails 
 
 
-	sleep 2
 	echo "Check EFS thumbnails repository"
 
 
@@ -74,8 +70,10 @@ echo Run thumbnails with a range of #njobs
 
 for i in "${njobs[@]}"
 do
-  echo $i
-  runthumbnails $i
+  echo $i jobs
+  runthumbnails $i > runthumbnails.$i.njobs.out
+  bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
+  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 
 #runthumbnails 10
