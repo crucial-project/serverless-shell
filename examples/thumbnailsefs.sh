@@ -71,6 +71,65 @@ runthumbnails()
 	#sshell "rm -rf /tmp/*"
 }
 
+runthumbnailsnoop()
+{
+
+	echo "Run Thumbnails w/o any operation (NO UP) "
+
+	rm -f $THUMBNAILSEC2PATH/THUMBNAIL*
+
+	#ls $THUMBNAILSEC2PATH | head -20 > thumbnailssubset.out
+
+	echo "Number of elements in EFS thumbnails repository before operation: "
+	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+	cat numelementsthumbnails.out
+
+	ls $THUMBNAILSEC2PATH > thumbnails.out
+
+	sshell "rm -rf /tmp/pic*"
+	sshell "rm -rf /tmp/THUMB*"
+	sshell "echo Number of elements in /tmp before operation: "
+	sshell "ls /tmp/ | wc -l"
+
+	echo ""
+	echo ""
+	echo START PROCESSING
+
+	NBJOBS=$1
+
+	clock1=`date +%s`
+
+	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	clock2=`date +%s`
+
+	durationthumbnails=`expr $clock2 - $clock1`
+
+	echo ""
+	echo ""
+	echo ""
+	echo DURATION THUMBNAILS : $durationthumbnails seconds
+	echo durationoverall = $durationthumbnails
+
+
+	echo "Check EFS thumbnails repository"
+
+
+	echo "Number of elements in EFS thumbnails repository after operation: "
+	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+	cat numelementsthumbnails.out
+
+	#ls $THUMBNAILSEC2PATH
+
+	echo Check number of original pictures in EFS/thumbnails directory
+	ls $THUMBNAILSEC2PATH/ | grep -v THUMB | wc -l
+	echo Check number of thumbnail pictures in EFS/thumbnails directory
+	ls $THUMBNAILSEC2PATH/ | grep THUMB | wc -l
+
+	echo "CHECK AWS LAMBDA /tmp"
+	sshell "ls -alsth /tmp"
+	#sshell "rm -rf /tmp/*"
+}
+
 
 runthumbnailsasync()
 {
