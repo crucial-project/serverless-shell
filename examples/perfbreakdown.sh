@@ -1,5 +1,60 @@
 #!/usr/bin/env bash
 
+buildperfbreakdownefsiosummary() {
+
+ echo USAGE: perfbreakdown arg1:FILE - arg2:Size Type - arg3:Number of jobs - arg4:Number of runs  	
+ echo 1st arg: $1
+ echo 2nd arg: $2
+ echo 3rd arg: $3
+ echo 4rd arg: $4
+
+ sleep 3 
+
+ durationdownloadefsaccnanosecs=0
+ durationuploadefsaccnanosecs=0
+
+ cat $1 | grep durationdownloadefs > durationdownloadefs.out
+ cat $1 | grep durationuploadefs > durationuploadefs.out
+
+ #cat durationio.out
+ #cat durationprocess.out
+
+ # Read Download file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationdownloadefsaccnanosecs=$((durationdownloadefsaccnanosecs+$measure))
+ done < durationdownloadefs.out
+
+ # Read Upload file
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationuploadefsaccnanosecs=$((durationuploadefsaccnanosecs+$measure))
+ done < durationuploadefs.out
+
+ #echo $($durationnanoioacc/1000000)
+ #echo $($durationnanocomputeacc/1000000)
+ #echo $($durationnanosyncacc/1000000)
+
+ durationdownloadefsavgnanosecs=$((durationdownloadefsaccnanosecs / $4))
+ durationuploadefsavgnanosecs=$((durationuploadefsaccnanosecs / $4))
+
+ durationdownloadefsavgnanosecs=$((durationdownloadefsavgnanosecs / $3))
+ durationuploadefsavgnanosecs=$((durationuploadefsavgnanosecs / $3))
+
+ durationdownloadefsaccsecs=$((durationdownloadefsaccnanosecs / 1000000000))
+ durationuploadefsaccsecs=$((durationuploadefsaccnanosecs / 1000000000))
+
+ echo "EFS I/O - Size $2  - Performance Breakdown Summary"
+
+ echo "duration Download EFS: $durationdownloadefsaccnanosecs nanoseconds"
+ echo "duration Upload EFS: $durationuploadefsaccnanosecs nanoseconds"
+
+ echo "duration Download EFS: $durationdownloadefsavfsecs seconds"
+ echo "duration Upload EFS: $durationuploadefsavgsecs seconds"
+ #echo "Overall duration: $durationoverall seconds"
+
+}
+
 
 buildperfbreakdownthumbnailssummary() {
 
@@ -143,4 +198,5 @@ buildperfbreakdownsummary() {
 
 }
 
-buildperfbreakdownthumbnailssummary $1 $2
+#buildperfbreakdownthumbnailssummary $1 $2
+buildperfbreakdownefsiosummary $1 $2 $3 $4
