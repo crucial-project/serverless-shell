@@ -15,8 +15,10 @@ cleanup()
 runefsiobenchdownload()
 {
   
-  echo Run EFS IO benchmark - DOWNLOAD : File size - $1  - Number of parallel jobs - $2
-  NBJOBS=$2
+  echo Run EFS IO benchmark - DOWNLOAD : File size - $1 == Length input file - $2 == Number of parallel jobs - $3
+  
+  SIZEINPUTFILE=$2
+  NBJOBS=$3
   ls $EFSIODIR | grep $1 > efsio.out 
   
   echo Number of lines of output :
@@ -36,7 +38,7 @@ runefsiobenchdownload()
   do
     echo iter: $iter
     clock1=`date +%s`
-    head -n 100 efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" clock5=\\\$(date +%s%N) ; cp $EFSIOLAMBDADIR/,, /tmp ; clock6=\\\$(date +%s%N)  ; durationefsdownloadefs=\\\$(expr \\\$clock6 - \\\$clock5) ; cd /tmp ; rm *.png ; cd .. \""
+    head -n $SIZEINPUTFILE efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" clock5=\\\$(date +%s%N) ; cp $EFSIOLAMBDADIR/,, /dev/null ; clock6=\\\$(date +%s%N)  ; durationefsdownloadefs=\\\$(expr \\\$clock6 - \\\$clock5) \""
     clock2=`date +%s`
     durationread=`expr $clock2 - $clock1`
     durationavgread=$((durationavgread+$durationread))
@@ -52,8 +54,9 @@ runefsiobenchdownload()
 runefsiobenchupload()
 {
   
-  echo Run EFS IO benchmark - UPLOAD : File size - $1  - Number of parallel jobs - $2
-  NBJOBS=$2
+  echo Run EFS IO benchmark - UPLOAD : File size - $1 == Length input file - $2 == Number of parallel jobs - $3
+  SIZEINPUTFILE=$2
+  NBJOBS=$3
   ls $EFSIODIR | grep $1 > efsio.out 
   
   echo Number of lines of output :
@@ -73,7 +76,7 @@ runefsiobenchupload()
     echo iter : $iter
     rm -rf $EFSIODIR/write/*
     clock3=`date +%s`
-    cat efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" cp $EFSIOLAMBDADIR/,, /tmp ; clock7=\\\$(date +%s%N) ; cp /tmp/,, $EFSIOLAMBDADIR/write ; clock8=\\\$(date +%s%N) ; cd /tmp ; rm *.png ;cd .. ; durationuploadefs=\\\$(expr \\\$clock8 - \\\$clock7) \""
+    head -n $SIZEINPUTFILE | parallel -j$NBJOBS -I,, --env sshell "sshell \" cp $EFSIOLAMBDADIR/,, /tmp ; clock7=\\\$(date +%s%N) ; cp /tmp/,, $EFSIOLAMBDADIR/write ; clock8=\\\$(date +%s%N) ; cd /tmp ; rm *.png ;cd .. ; durationuploadefs=\\\$(expr \\\$clock8 - \\\$clock7) \""
     clock4=`date +%s`
     durationwrite=`expr $clock4 - $clock3`
     durationavgwrite=$(($durationavgwrite+$durationwrite))
@@ -92,6 +95,7 @@ declare -a strSizeArrayDownload=("1m" "10m" "100m")
 declare -a strSizeArrayUpload=("10k" "100k")
 
 njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
+sizeinputfile=(100 200 300 400 500 600 700 800)
 
 echo LAUNCH EFS I/O - DOWNLOAD
 
@@ -99,13 +103,15 @@ cleanup
 
 for strsizeelt in "${strSizeArrayDownload[@]}"
 do
-
-   for ijob in "${njobs[@]}"
-   do 
-     echo size: $strsizeelt - nb jobs: $ijob
-     sleep 3
-     runefsiobenchdownload $strsizeelt $ijob  > runefsiobenchdownload.$ijob-nbparjobs.$strsizeelt-size.out
-     bash examples/perfbreakdown.sh runefsiobenchdownload.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.download.report.nbparjobs-$ijob.filesize-$strsizeelt.out
+   for iinputfile in "${sizeinputfile[@]}"
+   do
+     for ijob in "${njobs[@]}"
+     do 
+       echo size: $strsizeelt - length input file : $iinputfile - nb jobs: $ijob
+       sleep 3
+       runefsiobenchdownload $strsizeelt $iinputfile $ijob  &> runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out
+       bash examples/perfbreakdown.sh runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.download.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
+     done
    done
 done
 
@@ -113,13 +119,15 @@ echo LAUNCH EFS I/O - UPLOAD
 
 for strsizeelt in "${strSizeArrayUpload[@]}"
 do
-
-   for ijob in "${njobs[@]}"
-   do 
-     echo size: $strsizeelt - nb jobs: $ijob
-     sleep 3
-     runefsiobenchupload $strsizeelt $ijob  > runefsiobenchupload.$ijob-nbparjobs.$strsizeelt-size.out
-     bash examples/perfbreakdown.sh runefsiobenchupload.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.upload.report.nbparjobs-$ijob.filesize-$strsizeelt.out
+   for iinputfile in "${sizeinputfile[@]}"
+   do
+     for ijob in "${njobs[@]}"
+     do 
+       echo size: $strsizeelt - length input file : $iinputfile - nb jobs: $ijob
+       sleep 3
+       runefsiobenchupload $strsizeelt $iinputfile $ijob  &> runefsiobenchupload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out
+       bash examples/perfbreakdown.sh runefsiobenchupload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.upload.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
+     done  
    done
 done
 
