@@ -1,5 +1,49 @@
 #!/usr/bin/env bash
 
+buildperfbreakdownlambdalatencysummary() {
+
+ echo USAGE: perfbreakdown arg1:FILE - arg2:Expected latency - arg3:Size of input file - arg4:Number of runs  	
+ echo 1st arg: $1
+ echo 2nd arg: $2
+ echo 3rd arg: $3
+ echo 4th arg: $4
+
+ sleep 3 
+
+ durationlambdalatencyaccnanosecs=0
+
+ cat $1 | grep durationlatency > durationlambdalatency.out
+
+ #cat durationio.out
+ #cat durationprocess.out
+ cat durationlambdalatency.out
+
+ # Read Latency file
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationlambdalatencyaccnanosecs=$((durationlambdalatencyaccnanosecs+$measure))
+ done < durationlambdalatency.out
+
+ #echo $($durationnanoioacc/1000000)
+ #echo $($durationnanocomputeacc/1000000)
+ #echo $($durationnanosyncacc/1000000)
+
+ durationlambdalatencyavgnanosecs=$((durationlambdalatencyaccnanosecs / $4))
+
+ durationlambdalatencyavgnanosecs=$((durationlambdalatencyavgnanosecs / $3))
+
+ durationlambdalatencyavgmicrosecs=$((durationlambdalatencyavgnanosecs / 1000))
+
+ echo "Lambda Latency  - Performance Breakdown Summary"
+
+ echo "duration Current Lambda Latency: $durationlambdalatencyavgmicrosecs microseconds"
+ echo "duration Expected Lambda Latency: $2 microseconds"
+
+ #echo "Overall duration: $durationoverall seconds"
+
+}
+
+
 buildperfbreakdownefsiosummary() {
 
  echo USAGE: perfbreakdown arg1:FILE - arg2:Size Type - arg3:Number of jobs - arg4:Number of runs  	
@@ -199,4 +243,5 @@ buildperfbreakdownsummary() {
 }
 
 #buildperfbreakdownthumbnailssummary $1 $2
-buildperfbreakdownefsiosummary $1 $2 $3 $4
+#buildperfbreakdownefsiosummary $1 $2 $3 $4
+buildperfbreakdownlambdalatencysummary $1 $2 $3 $4
