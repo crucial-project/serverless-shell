@@ -9,10 +9,10 @@ export sec_file=/home/ec2-user/efs/sec/logs/log20170314.csv
 
 clock1=`date +%s` 
 
-
 #head -n 10 /dev/shm/config.properties | parallel echo
 #head -n 1000 $json_file | parallel echo
-head -n 10 $json_file | parallel -j10 -I,, --env sshell "sshell \" echo LAMBDA: ; echo ,, | zannotate -routing -routing-mrt-file=$mrt_file -input-file-type=json \""
+#head -n 10 $json_file | parallel -j10 -I,, --env sshell "sshell \" echo LAMBDA: ; echo ,, | zannotate -routing -routing-mrt-file=$mrt_file -input-file-type=json \""
+head -n 100000 $HOME/efs/poshdata/apps/portscan/test_80_40GB.json | parallel -j10 -I,, --env sshell "sshell \"  echo ,, | zannotate -routing -routing-mrt-file=$mrt_file -input-file-type=json \""
 #cat $json_file | parallel -j10 -I,, --env sshell "sshell \" true \""
 #head -n 10 /dev/shm/config.properties | parallel -j10 -I,, --env sshell "sshell \" echo ,, \""
 #head -n 1000 $sec_file | parallel -j10 -I,, --env sshell "sshell \" echo ,, \""
