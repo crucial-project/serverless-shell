@@ -159,7 +159,9 @@ runthumbnailsasync()
 
 	clock1=`date +%s`
 
-	cat thumbnails.out | parallel -j$NBJOBS -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; echo AFTER CLEARING /tmp : ls /tmp ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; magick convert -define png:size=300x100 /tmp/\\\$FILEINDEX -auto-orient -thumbnail 180x110 -unsharp 0x.5 /tmp/THUMBNAIL\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMBNAIL\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; rm -rf /tmp/RESIZE* ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
+	#cat thumbnails.out | parallel -j$NBJOBS -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; echo AFTER CLEARING /tmp : ls /tmp ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; magick convert -define png:size=300x100 /tmp/\\\$FILEINDEX -auto-orient -thumbnail 180x110 -unsharp 0x.5 /tmp/THUMBNAIL\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMBNAIL\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; rm -rf /tmp/pic* ; rm -rf /tmp/THUMB* ; rm -rf /tmp/RESIZE* ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
+
+	cat thumbnails.out | parallel -j$NBJOBS -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
 
 	clock2=`date +%s`
 
@@ -201,23 +203,24 @@ echo Run thumbnails with a range of #njobs
 #runthumbnails 10 &> thumbnails.10.out 
 #runthumbnails 10 
 
-for i in "${njobs[@]}"
-do
-  echo =================================
-  echo $i jobs
-  runthumbnails $i > runthumbnails.$i.njobs.out
-  bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
-  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
-done
-
-
 #for i in "${njobs[@]}"
 #do
+#  echo =================================
 #  echo $i jobs
-#  runthumbnailsasync $i > runthumbnailsasync.$i.njobs.out
-  #bash examples/perfbreakdown.sh runthumbnailsasync.$i.njobs.out $i 
+#  runthumbnails $i > runthumbnails.$i.njobs.out
+#  bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 #done
+
+
+for i in "${njobs[@]}"
+do
+  echo $i jobs
+  runthumbnailsasync $i 
+  #runthumbnailsasync $i > runthumbnailsasync.$i.njobs.out
+  #bash examples/perfbreakdown.sh runthumbnailsasync.$i.njobs.out $i 
+  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
+done
 
 
 
