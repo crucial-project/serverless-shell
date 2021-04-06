@@ -7,6 +7,7 @@ CCBASE="http://commoncrawl.s3.amazonaws.com"
 CCMAIN="CC-MAIN-2019-43" # oct. 2019
 INPUT=24000
 RANGE="-r 0-10000000"
+NBLAMBDAS=900
 
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
@@ -47,11 +48,18 @@ gathering(){
 
 # curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 count_ips(){
-    LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
+    echo count_ips before declaring barrier
+    #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
+    LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
     BARRIER=$(uuid)
+    echo count_ips after declaring barrier
     sshell "map -n ips clear"
-    cat ${TMP_DIR}/index | parallel -I,, "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, | 2>/dev/null zcat | tr '[:space:]' '[\n*]' | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" | sort | uniq -c | sort -bnr | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    sshell "map -n ips size"
+    echo after clearing map ips
+    head -n ${NBLAMBDAS} ${TMP_DIR}/index | parallel -I,, "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, | 2>/dev/null zcat | tr '[:space:]' '[\n*]' | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" | sort | uniq -c | sort -bnr | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    echo before barrier
     sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+    echo after barrier
     sshell "map -n ips size"
 }
 
@@ -282,9 +290,9 @@ test_map()
 # average_stateful
 # gathering
 # average
-#count_ips
+ count_ips
 #test_map
-domaincount_parallel_stateless
+#domaincount_parallel_stateless
 #clock3=`date +%s`
 #touch domaincounttmpmerged.out
 #export -f domaincount_mergeall_stateless
