@@ -134,12 +134,16 @@ runthumbnailsasync()
 	rm -f $THUMBNAILSEC2PATH/THUMB*
 
 	#ls $THUMBNAILSEC2PATH | head -20 > thumbnailssubset.out
-
-	echo "Number of elements in EFS thumbnails repository before operation: "
+       	echo "Number of elements in EFS thumbnails repository before operation: "
 	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
 	cat numelementsthumbnails.out
 
 	ls $THUMBNAILSEC2PATH > thumbnails.out
+
+	LAMBDA=$(($(wc -l thumbnails.out | awk '{print $1}')+1))
+	#LAMBDA=600
+        #LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
+        BARRIER=$(uuid)
 
 	#sshell "rm -rf /tmp/pic*"
 	#sshell "rm -rf /tmp/THUMB*"
@@ -149,18 +153,22 @@ runthumbnailsasync()
 	echo ""
 	echo ""
 	echo START PROCESSING
+	echo LAMBDA = ${LAMBDA}
         sleep 2
 
 	NBJOBS=$1
 
 	clock1=`date +%s`
 
-	while read l
-	do
-	  sshell --async "echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/${l} /tmp ; clock4=\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\$(date +%s%N) ; cp /tmp/THUMB\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\$(expr \$clock4 - \$clock3) ; durationconvert=\$(expr \$clock5 - \$clock4) ; durationupload=\$(expr \$clock6 - \$clock5) ; echo durationdownload = \$durationdownload ; echo durationconvert = \$durationconvert ; echo durationupload = \$durationupload ; echo ========== ; echo END ; echo ========== " 
-	done < thumbnails.out
+	#while read l
+	#do
+	#  sshell --async "echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/${l} /tmp ; clock4=\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\$(date +%s%N) ; cp /tmp/THUMB\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\$(expr \$clock4 - \$clock3) ; durationconvert=\$(expr \$clock5 - \$clock4) ; durationupload=\$(expr \$clock6 - \$clock5) ; echo durationdownload = \$durationdownload ; echo durationconvert = \$durationconvert ; echo durationupload = \$durationupload ; echo ========== ; echo END ; echo ========== " 
+	#done < thumbnails.out
 
-	#cat thumbnails.out | parallel -j$NBJOBS -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
+	cat thumbnails.out | parallel -j100 -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIER} -p ${LAMBDA} await \"" 
+	#head -n ${LAMBDA} thumbnails.out | parallel -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIER} -p ${LAMBDA} await \"" 
+        
+	sshell barrier -n ${BARRIER} -p ${LAMBDA} await
 
 	clock2=`date +%s`
 
