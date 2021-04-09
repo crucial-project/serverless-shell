@@ -129,7 +129,6 @@ runthumbnailsnoop()
 
 runthumbnailsasyncck()
 {
-
 	echo "Run thumbnails async benchmark - EFS repository - asynchronous version : "
         echo $1 parallel jobs
 
@@ -148,7 +147,7 @@ runthumbnailsasyncck()
 	#LAMBDA=600
         #LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
         BARRIERGLOB=$(uuid)
-
+        rm -rf ckthumbnails*
         split -l $CHUNKSZ -d thumbnails.out ckthumbnails
         iter=0
 	for filename in ckthumbnails*
@@ -156,12 +155,17 @@ runthumbnailsasyncck()
 	  iter=$((iter+1))
 	  LAMBDALOC=$(($(wc -l $filename | awk '{print $1}')+1))
           BARRIERLOC=$(uuid)
+	  echo Iterate $iter, BARRIERLOC=$BARRIERLOC, LAMBDALOC=$LAMBDALOC
 	  cat $filename | parallel -j100 -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIERLOC} -p ${LAMBDALOC} await \"" 
 
+	  echo Iterate $iter, pass local barrier ...
 	  sshell barrier -n ${BARRIERLOC} -p ${LAMBDALOC} await
+	  echo Iterate $iter, local barrier PASSED
 	done
 
-	sshell barrier -n ${BARRIERGLOB} -p ${LAMBDAGLOB} await
+	#echo Iterate $iter, pass global barrier, BARRIERGLOB=$BARRIERGLOB, LAMBDAGLOB=$LAMBDAGLOB ...
+	#sshell barrier -n ${BARRIERGLOB} -p ${LAMBDAGLOB} await
+	#echo Iterate $iter, global barrier PASSED
 
 	clock2=`date +%s`
 
@@ -356,5 +360,6 @@ do
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 
+#echo Async w/ chunks version 
 runthumbnailsasyncck
 
