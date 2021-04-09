@@ -4,7 +4,7 @@ THUMBNAILSEC2PATH=/home/ec2-user/efs/thumbnails
 THUMBNAILSLAMBDAPATH=/mnt/efsimttsp/thumbnails
 THUMBNAILSPATH=/mnt/efsimttsp/thumbnails
 
-CHUNKSZ=400
+#CHUNKSZ=400
 
 runthumbnails()
 {
@@ -130,7 +130,7 @@ runthumbnailsnoop()
 runthumbnailsasyncck()
 {
 	echo "Run thumbnails async benchmark - EFS repository - asynchronous version : "
-        echo $1 parallel jobs
+        echo $1 chunk size
 
 	rm -f $THUMBNAILSEC2PATH/THUMB*
 
@@ -141,6 +141,8 @@ runthumbnailsasyncck()
 
 	ls $THUMBNAILSEC2PATH > thumbnails.out
 
+	CKSIZE=$1
+
 	clock1=`date +%s`
 
 	LAMBDAGLOB=$(($(wc -l thumbnails.out | awk '{print $1}')+1))
@@ -148,7 +150,7 @@ runthumbnailsasyncck()
         #LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
         BARRIERGLOB=$(uuid)
         rm -rf ckthumbnails*
-        split -l $CHUNKSZ -d thumbnails.out ckthumbnails
+        split -l $CKSIZE -d thumbnails.out ckthumbnails
         iter=0
 	for filename in ckthumbnails*
 	do
@@ -156,7 +158,7 @@ runthumbnailsasyncck()
 	  LAMBDALOC=$(($(wc -l $filename | awk '{print $1}')+1))
           BARRIERLOC=$(uuid)
 	  echo Iterate $iter, BARRIERLOC=$BARRIERLOC, LAMBDALOC=$LAMBDALOC
-	  cat $filename | parallel -j100 -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIERLOC} -p ${LAMBDALOC} await \"" 
+	  cat $filename | parallel -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIERLOC} -p ${LAMBDALOC} await \"" 
 
 	  echo Iterate $iter, pass local barrier ...
 	  sshell barrier -n ${BARRIERLOC} -p ${LAMBDALOC} await
@@ -332,6 +334,9 @@ rm -rf runthumbnails.* runthumbnailsasync.* *.out
 
 # Run thumbnails with a range of #jobs
 njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
+#cksize=(10 20 40 60 80 100 200 400 600 800)
+cksize=(200 400 600 800)
+
 #njobs=(90 100 200 300 400 500 600 700 800)
 echo Run thumbnails with a range of #njobs
 
@@ -360,6 +365,15 @@ do
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 
-#echo Async w/ chunks version 
-runthumbnailsasyncck
+echo Async w/ chunks version 
+#ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+numelmtsinput=$(ls $THUMBNAILSEC2PATH | wc -l)
+for icksize in "${cksize[@]}"
+do
+  echo $icksize chunk size
+  #runthumbnailsasyncck $icksize
+  runthumbnailsasyncck $icksize > runthumbnailsasyncck.$icksize.cksize.out
+  bash examples/perfbreakdown.sh runthumbnails.$icksize.cksize.out $numelmtsinput $icksize > thumbnails.perfbreakdown.$icksize.cksize.out
+done
+
 
