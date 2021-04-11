@@ -234,6 +234,11 @@ buildperfbreakdownthumbnailsasynccksummary() {
  numckruns=$(($numinputelmts / $cksize))
  remain=$(($numckruns * $cksize))
  remain=$(($numinputelmts - $remain))
+ 
+ if [ "$remain" -ne 0 ]
+ then
+	 numckruns=$(($numckruns+1))
+ fi
 
  durationdownloadaccsecs=$((durationnanodownloadacc / 1000000000))
  durationconvertaccsecs=$((durationnanoconvertacc / 1000000000))

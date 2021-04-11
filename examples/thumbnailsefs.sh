@@ -155,6 +155,7 @@ runthumbnailsasyncck()
 	for filename in ckthumbnails*
 	do
 	  iter=$((iter+1))
+	  clockckbegin=`date +%s`
 	  LAMBDALOC=$(($(wc -l $filename | awk '{print $1}')+1))
           BARRIERLOC=$(uuid)
 	  echo Iterate $iter, BARRIERLOC=$BARRIERLOC, LAMBDALOC=$LAMBDALOC
@@ -163,6 +164,10 @@ runthumbnailsasyncck()
 	  echo Iterate $iter, pass local barrier ...
 	  sshell barrier -n ${BARRIERLOC} -p ${LAMBDALOC} await
 	  echo Iterate $iter, local barrier PASSED
+	  clockckend=`date +%s`
+	  durationthumbck=`expr $clockckend - $clockckbegin`
+	  echo durationthumbck_$iter = $durationthumbck
+	  #arraycktime[$iter]=durationthumbck
 	done
 
 	#echo Iterate $iter, pass global barrier, BARRIERGLOB=$BARRIERGLOB, LAMBDAGLOB=$LAMBDAGLOB ...
