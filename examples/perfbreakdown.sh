@@ -240,6 +240,8 @@ buildperfbreakdownthumbnailsasynccksummary() {
 	 numckruns=$(($numckruns+1))
  fi
 
+ 
+
  durationdownloadaccsecs=$((durationnanodownloadacc / 1000000000))
  durationconvertaccsecs=$((durationnanoconvertacc / 1000000000))
  durationuploadaccsecs=$((durationnanouploadacc / 1000000000))

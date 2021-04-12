@@ -1,10 +1,78 @@
 #!/bin/bash -x
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+TMP_DIR=/tmp/$(whoami)
+
+CCBASE="http://commoncrawl.s3.amazonaws.com"
+CCMAIN="CC-MAIN-2019-43" # oct. 2019
+INPUT=24000
+RANGE="-r 0-10000000"
+NBLAMBDAS=100
+
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
+    | zcat | head -n ${INPUT} > ${TMP_DIR}/index
+curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
+    | zcat | head -n ${INPUT} > ${TMP_DIR}/index-wat
+### 1 - average content size (stateless)
+
 THUMBNAILSEC2PATH=/home/ec2-user/efs/thumbnails
 THUMBNAILSLAMBDAPATH=/mnt/efsimttsp/thumbnails
 THUMBNAILSPATH=/mnt/efsimttsp/thumbnails
 
 #CHUNKSZ=400
+NBLAMBDAS=100
+
+testsync()
+{
+
+  ls $THUMBNAILSEC2PATH > thumbnails.out
+  cat thumbnails.out 
+
+  cat thumbnails.out | parallel -j100 -I,, --env sshell "sshell \" echo BEGIN SYNC LAMBDA ; echo END SYNC LAMBDA \""
+
+  #cat $filename | parallel -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIERLOC} -p ${LAMBDAL} await \"" 
+
+
+}
+
+# curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${INPUT} > ${TMP_DIR}/index
+count_ips(){
+    echo count_ips before declaring barrier
+    #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
+    LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
+    BARRIER=$(uuid)
+    echo count_ips after declaring barrier
+    sshell "map -n ips clear"
+    sshell "map -n ips size"
+    echo after clearing map ips
+    head -n ${NBLAMBDAS} ${TMP_DIR}/index | parallel -I,, "sshell --async \"map -n ips mergeAll \\\$(curl -s ${RANGE} ${CCBASE}/,, | 2>/dev/null zcat | tr '[:space:]' '[\n*]' | grep -oE \\\"\\\b([0-9]{1,3}\\\.){3}[0-9]{1,3}\\\b\\\" | sort | uniq -c | sort -bnr | awk '{s=s\\\" -1 \\\"\\\$2\\\"=\\\"\\\$1}END{print s}') -2 sum; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+    echo before barrier
+    sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+    echo after barrier
+    sshell "map -n ips size"
+}
+
+testasync()
+{
+
+  ls $THUMBNAILSEC2PATH > thumbnails.out
+  cat thumbnails.out 
+
+  #LAMBDA=$(($(wc -l thumbnails.out | awk '{print $1}')+1))
+  #LAMBDA=100
+  LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
+  BARRIER=$(uuid)
+  
+  echo Call async sshell
+  head -n ${NBLAMBDAS} thumbnails.out | parallel -I,, "sshell --async \" echo BEGIN ASYNC LAMBDA ; echo END ASYNC LAMBDA ; barrier -n ${BARRIER} -p ${LAMBDA} await \""
+
+  #cat $filename | parallel -I,, "sshell --async \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== ; barrier -n ${BARRIERLOC} -p ${LAMBDAL} await \"" 
+
+  echo before barrier
+  sshell barrier -n ${BARRIER} -p ${LAMBDA} await
+  echo after barrier
+
+}
 
 runthumbnails()
 {
@@ -71,7 +139,8 @@ runthumbnails()
 runthumbnailsnoop()
 {
 
-	echo "Run Thumbnails w/o any operation (NO UP) "
+	echo ""
+	echo "Run Thumbnails w/o any operation (NO 0P) "
 
 	rm -f $THUMBNAILSEC2PATH/THUMBNAIL*
 
@@ -95,8 +164,8 @@ runthumbnailsnoop()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-
-	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	head -n 900 thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	#cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
 	clock2=`date +%s`
 
 	durationthumbnails=`expr $clock2 - $clock1`
@@ -340,7 +409,7 @@ rm -rf runthumbnails.* runthumbnailsasync.* *.out
 # Run thumbnails with a range of #jobs
 njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
 #cksize=(10 20 40 60 80 100 200 400 600 800)
-cksize=(200 400 600 800)
+cksize=(100 200 400 600 800)
 
 #njobs=(90 100 200 300 400 500 600 700 800)
 echo Run thumbnails with a range of #njobs
@@ -354,6 +423,17 @@ do
   echo =================================
   echo $ijob jobs
   #runthumbnails $ijob 
+  #runthumbnails $i > runthumbnails.$i.njobs.out
+  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
+  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
+done
+
+echo Noop version 
+for ijob in "${njobs[@]}"
+do
+  echo =================================
+  echo $ijob jobs
+  runthumbnailsnoop $ijob 
   #runthumbnails $i > runthumbnails.$i.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
@@ -377,8 +457,10 @@ for icksize in "${cksize[@]}"
 do
   echo $icksize chunk size
   #runthumbnailsasyncck $icksize
-  runthumbnailsasyncck $icksize > runthumbnailsasyncck.$icksize.cksize.out
-  bash examples/perfbreakdown.sh runthumbnails.$icksize.cksize.out $numelmtsinput $icksize > thumbnails.perfbreakdown.$icksize.cksize.out
+  #runthumbnailsasyncck $icksize > runthumbnailsasyncck.$icksize.cksize.out
+  #bash examples/perfbreakdown.sh runthumbnails.$icksize.cksize.out $numelmtsinput $icksize > thumbnails.perfbreakdown.$icksize.cksize.out
 done
 
-
+#testsync
+#testasync
+#count_ips
