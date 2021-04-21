@@ -22,6 +22,11 @@ THUMBNAILSPATH=/mnt/efsimttsp/thumbnails
 #CHUNKSZ=400
 NBLAMBDAS=100
 
+cleanup()
+{
+  rm -f *.out
+}
+
 testsync()
 {
 
@@ -164,7 +169,7 @@ runthumbnailsnoop()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-	head -n 900 thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" clock3=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock4=\\\$(date +%s%N) ; durationsleep=\\\$(expr \\\$clock4 - \\\$clock3) ; echo durationsleep = \\\$durationsleep \""
 	#cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
 	clock2=`date +%s`
 
@@ -176,9 +181,7 @@ runthumbnailsnoop()
 	echo DURATION THUMBNAILS : $durationthumbnails seconds
 	echo durationoverall = $durationthumbnails
 
-
 	echo "Check EFS thumbnails repository"
-
 
 	echo "Number of elements in EFS thumbnails repository after operation: "
 	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
@@ -404,10 +407,13 @@ runthumbnailsasync2()
 	#sshell "rm -rf /tmp/*"
 }
 
-rm -rf runthumbnails.* runthumbnailsasync.* *.out
+#rm -rf runthumbnails.* runthumbnailsasync.* *.out
+cleanup
 
 # Run thumbnails with a range of #jobs
-njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
+#njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
+njobs=(10 20 30 40 60 80 100 200 300 400 500 600 700 800)
+#njobs=(100 200 300 400 500 600 700 800)
 #cksize=(10 20 40 60 80 100 200 400 600 800)
 cksize=(100 200 400 600 800)
 
@@ -433,9 +439,9 @@ for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob jobs
-  runthumbnailsnoop $ijob 
-  #runthumbnails $i > runthumbnails.$i.njobs.out
-  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
+  #runthumbnailsnoop $ijob 
+  runthumbnailsnoop $ijob > runthumbnailsnoop.$ijob.njobs.out
+  bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 
