@@ -141,6 +141,28 @@ runthumbnails()
 	#sshell "rm -rf /tmp/*"
 }
 
+runparallelnoop()
+{
+
+	ls $THUMBNAILSEC2PATH > thumbnails.out
+
+	NBJOBS=$1
+
+	clock1=`date +%s`
+	cat thumbnails.out | parallel -j$NBJOBS  "clock3=\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock4=\$(date +%s%N) ; durationsleep=\$(expr \$clock4 - \$clock3) ; echo durationsleep = \$durationsleep"
+	#cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	clock2=`date +%s`
+
+	durationthumbnails=`expr $clock2 - $clock1`
+
+	echo ""
+	echo ""
+	echo ""
+	echo DURATION THUMBNAILS : $durationthumbnails seconds
+	echo durationoverall = $durationthumbnails
+
+}
+
 runthumbnailsnoop()
 {
 
@@ -434,14 +456,26 @@ do
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 
+echo Parallel noop version 
+for ijob in "${njobs[@]}"
+do
+  echo =================================
+  echo $ijob jobs
+  #runthumbnailsnoop $ijob 
+  runparallelnoop $ijob > runparallelnoop.$ijob.njobs.out
+  bash examples/perfbreakdown.sh runparallelnoop.$ijob.njobs.out $ijob 
+  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
+done
+
+
 echo Noop version 
 for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob jobs
   #runthumbnailsnoop $ijob 
-  runthumbnailsnoop $ijob > runthumbnailsnoop.$ijob.njobs.out
-  bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.out $ijob 
+  #runthumbnailsnoop $ijob > runthumbnailsnoop.$ijob.njobs.out
+  #bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 

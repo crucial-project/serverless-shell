@@ -3,12 +3,29 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 EFSIODIR=$HOME/efs/benchio
-EFSIOLAMBDADIR=/mnt/efsimttsp/benchio
+EFSIOLAMBDADIR=/mnt/efsimttsp/benchio/files
 NBRUNS=10
 
 cleanup()
 {
   rm -f *.out
+}
+
+runefsiobenchdownloadref()
+{
+  echo Calculate transfer rate of downloading a 1GB file
+  sizefile=1000
+
+  clock1=`date +%s` 
+  echo start download 
+  sshell "clock3=`date +%s` ; cp /mnt/efsimttsp/benchio/files/file1g.txt /dev/null ; clock4=`date +%s` ; durationdownload=\$(expr \$clock4 - \$clock3) ; echo \$durationdownload seconds" 
+  clock2=`date +%s`
+  echo download done 
+  durationread=`expr $clock2 - $clock1` 
+  echo duration reference read : $durationread seconds	
+
+  transferrate=$((sizefile / $durationread))
+  echo tranfer rate: $transferrate MB/s
 }
 
 # I/O operations on AWS EFS directory - DOWNLOAD
@@ -101,16 +118,19 @@ echo LAUNCH EFS I/O - DOWNLOAD
 
 cleanup
 
+runefsiobenchdownloadref
+
 for strsizeelt in "${strSizeArrayDownload[@]}"
 do
    for iinputfile in "${sizeinputfile[@]}"
    do
      for ijob in "${njobs[@]}"
      do 
-       echo size: $strsizeelt - length input file : $iinputfile - nb jobs: $ijob
-       sleep 3
-       runefsiobenchdownload $strsizeelt $iinputfile $ijob  &> runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out
-       bash examples/perfbreakdown.sh runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.download.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
+       #echo size: $strsizeelt - length input file : $iinputfile - nb jobs: $ijob
+       #sleep 3
+       #runefsiobenchdownload $strsizeelt $iinputfile $ijob  > runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out
+       #bash examples/perfbreakdown.sh runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.download.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
+       #bash examples/perfbreakdown.sh runefsiobenchdownload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.download.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
      done
    done
 done
@@ -123,10 +143,10 @@ do
    do
      for ijob in "${njobs[@]}"
      do 
-       echo size: $strsizeelt - length input file : $iinputfile - nb jobs: $ijob
-       sleep 3
-       runefsiobenchupload $strsizeelt $iinputfile $ijob  &> runefsiobenchupload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out
-       bash examples/perfbreakdown.sh runefsiobenchupload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.upload.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
+       #echo size: $strsizeelt - length input file : $iinputfile - nb jobs: $ijob
+       #sleep 3
+       #runefsiobenchupload $strsizeelt $iinputfile $ijob  &> runefsiobenchupload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out
+       #bash examples/perfbreakdown.sh runefsiobenchupload.$iinputfile-sizeinputfile.$ijob-nbparjobs.$strsizeelt-size.out $strsizeelt $ijob $NBRUNS > benchefsio.perbreakdown.upload.report.sizeinputfile-$iinputfile.nbparjobs-$ijob.filesize-$strsizeelt.out
      done  
    done
 done
