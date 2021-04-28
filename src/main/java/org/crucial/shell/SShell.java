@@ -1,6 +1,7 @@
 package org.crucial.shell;
 
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
@@ -10,6 +11,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -80,7 +82,15 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_DEBUG) : Config.AWS_LAMBDA_DEBUG_DEFAULT);
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
+
             lambdaClient = LambdaClient.builder()
+                    .overrideConfiguration(
+                            ClientOverrideConfiguration.builder()
+                                    .apiCallTimeout(
+                                            Duration.ofSeconds(
+                                                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIEMOUT) ?
+                                                            properties.getProperty(Config.AWS_LAMBDA_TIEMOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)))
+                                    .build())
                     .region(Region.of(region))
                     .build();
 
