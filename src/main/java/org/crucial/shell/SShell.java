@@ -1,7 +1,12 @@
 package org.crucial.shell;
 
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.internal.http.loader.DefaultSdkHttpClientBuilder;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
@@ -16,6 +21,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 public class SShell {
 
@@ -82,15 +88,18 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_DEBUG) : Config.AWS_LAMBDA_DEBUG_DEFAULT);
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
-
-            lambdaClient = LambdaClient.builder()
-                    .overrideConfiguration(
-                            ClientOverrideConfiguration.builder()
-                                    .apiCallTimeout(
+            lambdaClient = LambdaClient
+                    .builder()
+                    .httpClientBuilder(
+                            UrlConnectionHttpClient
+                                    .builder()
+                                    .connectionTimeout(
                                             Duration.ofSeconds(
                                                     Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ?
-                                                            properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)))
-                                    .build())
+                                                            properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)
+                                            )
+                                    )
+                    )
                     .region(Region.of(region))
                     .build();
 
