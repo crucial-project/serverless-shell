@@ -88,8 +88,8 @@ public class SShell {
                             ClientOverrideConfiguration.builder()
                                     .apiCallTimeout(
                                             Duration.ofSeconds(
-                                                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIEMOUT) ?
-                                                            properties.getProperty(Config.AWS_LAMBDA_TIEMOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)))
+                                                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ?
+                                                            properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)))
                                     .build())
                     .region(Region.of(region))
                     .build();
