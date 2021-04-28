@@ -6,6 +6,9 @@ public class Config {
     public static final String AWS_LAMBDA_DEBUG = "debug";
     public static final String AWS_LAMBDA_DEBUG_DEFAULT = "false";
 
+    public static final String AWS_LAMBDA_TIEMOUT = "aws.timeout";
+    public static final String AWS_LAMBDA_TIMEOUT_DEFAULT = "30";
+
     public static final String AWS_LAMBDA_FUNCTION_ASYNC = "async";
     public static final String AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT = "false";
 
@@ -14,5 +17,6 @@ public class Config {
 
     public static final String AWS_LAMBDA_FUNCTION_ARN = "aws.lambda.function.arn";
     public static final String AWS_LAMBDA_FUNCTION_ARN_DEFAULT = "arn:aws:lambda:AWS_REGION:ID:function:NAME";
+
 
 }
