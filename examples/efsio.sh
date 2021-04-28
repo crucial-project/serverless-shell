@@ -15,14 +15,6 @@ cleanup()
 testsshelltimeout()
 {
 
-echo SSHELL sleep 10 seconds
-sshell "sleep 10"
-echo SSHELL sleep 20 seconds
-sshell "sleep 20"
-echo SSHELL sleep 30 seconds
-sshell "sleep 30"
-echo SSHELL sleep 40 seconds
-sshell "sleep 40"
 echo SSHELL sleep 60 seconds
 sshell "sleep 60"
 echo SSHELL sleep 120 seconds
@@ -181,8 +173,8 @@ echo LAUNCH EFS I/O - DOWNLOAD
 
 cleanup
 
-#testsshelltimeout
-runefsiobenchdownloadref
+testsshelltimeout
+#runefsiobenchdownloadref
 #testparallelsshell
 
 for ijob in "${njobs[@]}"
