@@ -8,6 +8,7 @@ CCMAIN="CC-MAIN-2019-43" # oct. 2019
 INPUT=24000
 RANGE="-r 0-10000000"
 NBLAMBDAS=100
+NBRUNS=4
 
 curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
     | zcat | head -n ${INPUT} > ${TMP_DIR}/index
@@ -149,17 +150,19 @@ runparallelnoop()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-	cat thumbnails.out | parallel -j$NBJOBS  "clock3=\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock4=\$(date +%s%N) ; durationsleep=\$(expr \$clock4 - \$clock3) ; echo durationsleep = \$durationsleep"
-	#cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	for iter in $(seq 1 $NBRUNS)
+        do
+	  echo run $iter
+	  cat thumbnails.out | parallel -j$NBJOBS  "clock3=\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock4=\$(date +%s%N) ; durationsleep=\$(expr \$clock4 - \$clock3) ; echo durationsleep = \$durationsleep"
+	done
 	clock2=`date +%s`
+	durationaccparallel=`expr $clock2 - $clock1`
 
-	durationthumbnails=`expr $clock2 - $clock1`
-
+        #durationavgparallel=$((durationaccparallel / ${NBRUNS}))
 	echo ""
 	echo ""
 	echo ""
-	echo DURATION THUMBNAILS : $durationthumbnails seconds
-	echo durationoverall = $durationthumbnails
+	echo durationoverall = $durationaccparallel
 
 }
 
@@ -179,11 +182,6 @@ runthumbnailsnoop()
 
 	ls $THUMBNAILSEC2PATH > thumbnails.out
 
-	sshell "rm -rf /tmp/pic*"
-	sshell "rm -rf /tmp/THUMB*"
-	sshell "echo Number of elements in /tmp before operation: "
-	sshell "ls /tmp/ | wc -l"
-
 	echo ""
 	echo ""
 	echo START PROCESSING
@@ -191,8 +189,11 @@ runthumbnailsnoop()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" clock3=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock4=\\\$(date +%s%N) ; durationsleep=\\\$(expr \\\$clock4 - \\\$clock3) ; echo durationsleep = \\\$durationsleep \""
-	#cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" true \""
+	for iter in $(seq 1 $NBRUNS)
+        do
+	  echo run $iter
+	  cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "clock3=\$(date +%s%N) ; sshell \" clock4=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock5=\\\$(date +%s%N) ; durationinvokesshell=\\\$(expr \\\$clock4 - \$clock3) ; durationsleep=\\\$(expr \\\$clock5 - \\\$clock4) ; echo durationinvokesshell = \\\$durationinvokesshell ; echo durationsleep = \\\$durationsleep \""
+        done
 	clock2=`date +%s`
 
 	durationthumbnails=`expr $clock2 - $clock1`
@@ -434,8 +435,8 @@ cleanup
 
 # Run thumbnails with a range of #jobs
 #njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-njobs=(10 20 30 40 60 80 100 200 300 400 500 600 700 800)
-#njobs=(100 200 300 400 500 600 700 800)
+#njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
+njobs=(40 60 80 100 200 300 400 500 600 700 800)
 #cksize=(10 20 40 60 80 100 200 400 600 800)
 cksize=(100 200 400 600 800)
 
@@ -449,47 +450,57 @@ echo Sync version
 for ijob in "${njobs[@]}"
 do
   echo =================================
-  echo $ijob jobs
+  echo $ijob parallel jobs
   #runthumbnails $ijob 
   #runthumbnails $i > runthumbnails.$i.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
-
-echo Parallel noop version 
+echo ""
+echo =================================
+echo =================================
+echo ""
+echo Parallel NO OP version 
 for ijob in "${njobs[@]}"
 do
   echo =================================
-  echo $ijob jobs
-  #runthumbnailsnoop $ijob 
+  echo $ijob parallel jobs
   runparallelnoop $ijob > runparallelnoop.$ijob.njobs.out
-  bash examples/perfbreakdown.sh runparallelnoop.$ijob.njobs.out $ijob 
+  bash examples/perfbreakdown.sh runparallelnoop.$ijob.njobs.out $ijob $NBRUNS
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
-
-
-echo Noop version 
+echo ""
+echo =================================
+echo =================================
+echo ""
+echo Thumbnails NO OP version 
 for ijob in "${njobs[@]}"
 do
   echo =================================
-  echo $ijob jobs
+  echo $ijob parallel jobs
   #runthumbnailsnoop $ijob 
   #runthumbnailsnoop $ijob > runthumbnailsnoop.$ijob.njobs.out
-  #bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.out $ijob 
+  #bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.out $ijob $NBRUNS
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
-
+echo ""
+echo =================================
+echo =================================
+echo ""
 echo Async version
 for ijob in "${njobs[@]}"
 do
-  echo $ijob jobs
+  echo $ijob parallel jobs
   #runthumbnailsasync $ijob 
   #runthumbnailsasync $ijob > runthumbnailsasync.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnailsasync.njobs.out $ijob 
   #bash examples/bugtracker.sh runthumbnailsasync.$ijob.njobs.out $ijob
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
-
+echo ""
+echo =================================
+echo =================================
+echo ""
 echo Async w/ chunks version 
 #ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
 numelmtsinput=$(ls $THUMBNAILSEC2PATH | wc -l)

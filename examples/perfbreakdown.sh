@@ -99,17 +99,14 @@ buildperfbreakdownefsiosummary() {
 
 }
 
-buildperfbreakdownthumbnailsnoopsummary() {
-
- durationnanodownloadacc=0
- durationnanoconvertacc=0
- durationnanouploadacc=0
+buildperfbreakdownparallelnoopsummary() {
 
  cat $1 | grep durationsleep > durationsleep.out
  cat $1 | grep durationoverall > durationoverall.out
 
  echo 1st arg: $1
  echo 2nd arg: $2
+ echo 3rd arg: $3
 
  # Read Sleep file 
  while read l; do
@@ -124,29 +121,81 @@ buildperfbreakdownthumbnailsnoopsummary() {
    durationoverall=$measure
  done < durationoverall.out
 
- echo "duration Sleep: $durationnanosleepacc nanoseconds"
-
- #echo $($durationnanoioacc/1000000)
- #echo $($durationnanosyncacc/1000000)
-
  durationsleepaccsecs=$((durationnanosleepacc / 1000000000))
 
- #durationioavg=$((durationioaccsecs / ${INPUT}))
- #durationcomputeavg=$((durationcomputeaccsecs / ${INPUT}))
- #durationsyncavg=$((durationsyncaccsecs / ${INPUT}))
+ echo "Aggregated duration sleep: $durationsleepaccsecs seconds"
 
- #durationioacc=$((durationnanoioacc / 1000000))
- #durationcomputeacc=$((durationnanocomputeacc / 1000000))
- #durationsyncacc=$((durationnanosyncacc / 1000000))
+ durationsleepsecs=$((durationsleepaccsecs / $2))
+ durationsleepavgsecs=$((durationsleepsecs / $3))
+ durationoverallavg=$((durationoverall / $3))
+ durationinvokeavg=$(($durationoverallavg-$durationsleepavgsecs))
+ echo ===============================================
+ echo "GNU Parallel NO OP - Performance Breakdown Summary"
 
- durationsleepaccsecs=$((durationsleepaccsecs / $2))
- durationinvoke=$(($durationoverall-$durationsleepaccsecs))
+ echo "duration sleep: $durationsleepavgsecs seconds"
+ echo "duration parallel invoke: $durationinvokeavg seconds"
+ echo "Overall duration: $durationoverallavg seconds"
 
- echo "Thumbnails - Performance Breakdown Summary"
+}
 
- echo "duration Sleep: $durationsleepaccsecs seconds"
- echo "duration lambda invoke: $durationinvoke seconds"
- echo "Overall duration: $durationoverall seconds"
+
+buildperfbreakdownthumbnailsnoopsummary() {
+
+ durationnanodownloadacc=0
+ durationnanoconvertacc=0
+ durationnanouploadacc=0
+
+ cat $1 | grep durationsleep > durationsleep.out
+ cat $1 | grep durationinvokesshell > durationinvokesshell.out
+ cat $1 | grep durationoverall > durationoverall.out
+
+ echo 1st arg: $1
+ echo 2nd arg: $2
+ echo 3rd arg: $3
+
+ # Read Sleep file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationnanosleepacc=$((durationnanosleepacc+$measure))
+ done < durationsleep.out
+
+ # Read Invoke sshell file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationnanoinvokesshellacc=$((durationnanoinvokesshellacc+$measure))
+ done < durationinvokesshell.out
+
+ # Read Overall file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   echo measure overall: $measure
+   durationoverall=$measure
+ done < durationoverall.out
+
+ echo "duration Invoke sshell: $durationnanoinvokesshellacc nanoseconds"
+ echo "duration Sleep: $durationnanosleepacc nanoseconds"
+
+ durationinvokesshellaccsecs=$((durationnanoinvokesshellacc / 1000000000))
+ durationsleepaccsecs=$((durationnanosleepacc / 1000000000))
+
+ echo "Aggregated duration Invoke sshell: $durationinvokesshellaccsecs seconds"
+ echo "Aggregated duration sleep: $durationsleepaccsecs seconds"
+
+ durationinvokesshellsecs=$((durationinvokesshellaccsecs / $2))
+ durationsleepsecs=$((durationsleepaccsecs / $2))
+ durationinvokesshellavgsecs=$((durationinvokesshellsecs / $3))
+ durationsleepavgsecs=$((durationsleepsecs / $3))
+ durationoverallavg=$((durationoverall / $3))
+
+ durationremaininvoke=$(($durationoverallavg-$durationsleepavgsecs-$durationinvokesshellavgsecs))
+
+ echo ===============================================
+ echo "Thumbnails NO OP - Performance Breakdown Summary"
+
+ echo "duration Sleep: $durationsleepavgsecs seconds"
+ echo "duration invoke sshell latency: $durationinvokesshellavgsecs seconds"
+ echo "duration remain invoke latency: $durationremaininvoke seconds"
+ echo "Overall duration: $durationoverallavg seconds"
 
 }
 
@@ -382,7 +431,8 @@ buildperfbreakdownsummary() {
 }
 
 #buildperfbreakdownthumbnailssummary $1 $2
-buildperfbreakdownthumbnailsnoopsummary $1 $2
+buildperfbreakdownparallelnoopsummary $1 $2 $3
+#buildperfbreakdownthumbnailsnoopsummary $1 $2 $3
 #buildperfbreakdownthumbnailsasynccksummary $1 $2 $3
 #buildperfbreakdownefsiosummary $1 $2 $3 $4
 #buildperfbreakdownlambdalatencysummary $1 $2 $3 $4
