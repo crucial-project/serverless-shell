@@ -176,14 +176,17 @@ buildperfbreakdownthumbnailsnoopsummary() {
  echo "duration Sleep: $durationnanosleepacc nanoseconds"
 
  durationinvokesshellaccsecs=$((durationnanoinvokesshellacc / 1000000000))
+ durationinvokesshellaccmsecs=$((durationnanoinvokesshellacc / 1000000))
  durationsleepaccsecs=$((durationnanosleepacc / 1000000000))
 
- echo "Aggregated duration Invoke sshell: $durationinvokesshellaccsecs seconds"
- echo "Aggregated duration sleep: $durationsleepaccsecs seconds"
+ echo "Aggregated duration Invoke sshell: $durationinvokesshellaccmsecs ms"
+ echo "Aggregated duration sleep: $durationsleepaccsecs s"
 
  durationinvokesshellsecs=$((durationinvokesshellaccsecs / $2))
+ durationinvokesshellmsecs=$((durationinvokesshellaccmsecs / $2))
  durationsleepsecs=$((durationsleepaccsecs / $2))
  durationinvokesshellavgsecs=$((durationinvokesshellsecs / $3))
+ durationinvokesshellavgmsecs=$((durationinvokesshellmsecs / $3))
  durationsleepavgsecs=$((durationsleepsecs / $3))
  durationoverallavg=$((durationoverall / $3))
 
@@ -192,10 +195,10 @@ buildperfbreakdownthumbnailsnoopsummary() {
  echo ===============================================
  echo "Thumbnails NO OP - Performance Breakdown Summary"
 
- echo "duration Sleep: $durationsleepavgsecs seconds"
- echo "duration invoke sshell latency: $durationinvokesshellavgsecs seconds"
- echo "duration remain invoke latency: $durationremaininvoke seconds"
- echo "Overall duration: $durationoverallavg seconds"
+ echo "duration Sleep: $durationsleepavgsecs s"
+ echo "duration invoke sshell latency: $durationinvokesshellavgmsecs ms"
+ echo "duration remain invoke latency: $durationremaininvoke s"
+ echo "Overall duration: $durationoverallavg s"
 
 }
 
@@ -431,8 +434,8 @@ buildperfbreakdownsummary() {
 }
 
 #buildperfbreakdownthumbnailssummary $1 $2
-buildperfbreakdownparallelnoopsummary $1 $2 $3
-#buildperfbreakdownthumbnailsnoopsummary $1 $2 $3
+#buildperfbreakdownparallelnoopsummary $1 $2 $3
+buildperfbreakdownthumbnailsnoopsummary $1 $2 $3
 #buildperfbreakdownthumbnailsasynccksummary $1 $2 $3
 #buildperfbreakdownefsiosummary $1 $2 $3 $4
 #buildperfbreakdownlambdalatencysummary $1 $2 $3 $4
