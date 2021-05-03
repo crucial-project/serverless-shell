@@ -142,6 +142,60 @@ runthumbnails()
 	#sshell "rm -rf /tmp/*"
 }
 
+runthumbnailslocal()
+{
+
+	echo "Run thumbnails benchmark - EFS repository - synchronous and local version : "
+
+	rm -f $THUMBNAILSEC2PATH/THUMB*
+
+	#ls $THUMBNAILSEC2PATH | head -20 > thumbnailssubset.out
+
+	echo "Number of elements in EFS thumbnails repository before operation: "
+	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+	cat numelementsthumbnails.out
+
+	ls $THUMBNAILSEC2PATH > thumbnails.out
+
+	cat thumbnails.out 
+
+	echo ""
+	echo START PROCESSING
+        sleep 2
+
+	NBJOBS=$1
+
+	clock1=`date +%s`
+
+	cat thumbnails.out | parallel -j$NBJOBS -I,, " echo ========== ; echo BEGIN LOCAL; echo ========== ; clock3=\$(date +%s%N) ; rm -f THUMB* ; rm -f *.png ; echo element: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \$FILEINDEX ; cp $THUMBNAILSEC2PATH/,, . ; clock4=\$(date +%s%N) ; echo BEFORE MAGICK : ls . | wc -l ; magick convert \$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 THUMB\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\$(date +%s%N) ; cp THUMB\$FILEINDEX $THUMBNAILSEC2PATH ;  rm -rf /tmp/THUMB* ; rm -rf pic* ; clock6=\$(date +%s%N) ; echo Number of elements in .: ; ls . | wc -l ; echo Content of thumbnails AWS EFS repository: ; durationdownload=\$(expr \$clock4 - \$clock3) ; durationconvert=\$(expr \$clock5 - \$clock4) ; durationupload=\$(expr \$clock6 - \$clock5) ; echo durationdownload = \$durationdownload ; echo durationconvert = \$durationconvert ; echo durationupload = \$durationupload ; echo ========== ; echo END ; echo ========== " 
+
+	clock2=`date +%s`
+
+	durationthumbnails=`expr $clock2 - $clock1`
+
+	echo ""
+	echo ""
+	echo ""
+	echo DURATION THUMBNAILS : $durationthumbnails seconds
+	echo durationoverall = $durationthumbnails 
+
+	echo "Check EFS thumbnails repository"
+
+
+	echo "Number of elements in EFS thumbnails repository after operation: "
+	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+	cat numelementsthumbnails.out
+
+	#ls $THUMBNAILSEC2PATH
+
+	echo Check number of original pictures in EFS/thumbnails directory
+	ls $THUMBNAILSEC2PATH/ | grep -v THUMB | wc -l
+	echo Check number of thumbnail pictures in EFS/thumbnails directory
+	ls $THUMBNAILSEC2PATH/ | grep THUMB | wc -l
+
+}
+
+
 runparallelnoop()
 {
 
@@ -435,8 +489,8 @@ cleanup
 
 # Run thumbnails with a range of #jobs
 #njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-#njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
-njobs=(40 60 80 100 200 300 400 500 600 700 800)
+njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
+#njobs=(40 60 80 100 200 300 400 500 600 700 800)
 #cksize=(10 20 40 60 80 100 200 400 600 800)
 cksize=(100 200 400 600 800)
 
@@ -446,7 +500,7 @@ echo Run thumbnails with a range of #njobs
 #runthumbnails 10 &> thumbnails.10.out 
 #runthumbnails 10 
 
-echo Sync version 
+echo Thumbnails Sync version 
 for ijob in "${njobs[@]}"
 do
   echo =================================
@@ -460,13 +514,27 @@ echo ""
 echo =================================
 echo =================================
 echo ""
+echo Thumbnails local version 
+for ijob in "${njobs[@]}"
+do
+  echo =================================
+  echo $ijob parallel jobs
+  runthumbnailslocal $ijob 
+  #runthumbnailslocal $ijob > runthumbnailslocal.$ijob.njobs.out
+  #bash examples/perfbreakdown.sh runthumbnailslocal.$ijob.njobs.out $ijob 
+  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
+done
+echo ""
+echo =================================
+echo =================================
+echo ""
 echo Parallel NO OP version 
 for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  runparallelnoop $ijob > runparallelnoop.$ijob.njobs.out
-  bash examples/perfbreakdown.sh runparallelnoop.$ijob.njobs.out $ijob $NBRUNS
+  #runparallelnoop $ijob > runparallelnoop.$ijob.njobs.out
+  #bash examples/perfbreakdown.sh runparallelnoop.$ijob.njobs.out $ijob $NBRUNS
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 echo ""
