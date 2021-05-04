@@ -11,6 +11,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 
+import java.lang.Object.com.amazonaws.ClientConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -42,6 +43,8 @@ public class SShell {
     private boolean asynchronous;
     private boolean debug;
     private LambdaClient lambdaClient;
+    private ClientConfiguration lambdaClientConf;
+    private Integer timeout;
     private String region;
     private String arn;
 
@@ -82,6 +85,8 @@ public class SShell {
 
             region = properties.containsKey(Config.AWS_LAMBDA_REGION) ?
                     properties.getProperty(Config.AWS_LAMBDA_REGION) : Config.AWS_LAMBDA_REGION_DEFAULT;
+            timeout = properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ?
+                    properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT;
             arn = properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ARN) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ARN) : Config.AWS_LAMBDA_FUNCTION_ARN_DEFAULT;
             debug = Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_DEBUG) ?
@@ -94,14 +99,20 @@ public class SShell {
                             UrlConnectionHttpClient
                                     .builder()
                                     .connectionTimeout(
-                                            Duration.ofSeconds(
-                                                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ?
-                                                            properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)
-                                            )
+                                            Duration.ofSeconds(timeout)
                                     )
                     )
                     .region(Region.of(region))
                     .build();
+
+            lambdaClientConf = new ClientConfiguration();
+            lambdaClientConf
+            .setConnectionTimeout(
+                Duration.ofMillis(
+                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ? 
+                    properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)
+                    )
+                );
 
             // Invoke
             GetFunctionRequest gf = GetFunctionRequest.builder().functionName(arn).build();
