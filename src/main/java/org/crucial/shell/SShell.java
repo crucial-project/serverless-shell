@@ -43,7 +43,7 @@ public class SShell {
     private boolean asynchronous;
     private boolean debug;
     private LambdaClient lambdaClient;
-    private ClientConfiguration lambdaClientConf;
+    //private ClientConfiguration lambdaClientConf;
     private String timeout;
     private String region;
     private String arn;
