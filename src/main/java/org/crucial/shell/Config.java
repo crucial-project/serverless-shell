@@ -6,8 +6,8 @@ public class Config {
     public static final String AWS_LAMBDA_DEBUG = "debug";
     public static final String AWS_LAMBDA_DEBUG_DEFAULT = "false";
 
-    public static final String AWS_LAMBDA_TIMEOUT = "aws.client.timeout";
-    public static final String AWS_LAMBDA_TIMEOUT_DEFAULT = "30";
+    public static final String AWS_LAMBDA_CLIENT_TIMEOUT = "aws.client.timeout";
+    public static final String AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT = "30";
 
     public static final String AWS_LAMBDA_FUNCTION_ASYNC = "async";
     public static final String AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT = "false";

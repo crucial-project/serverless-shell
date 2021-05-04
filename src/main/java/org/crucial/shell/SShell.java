@@ -85,8 +85,8 @@ public class SShell {
 
             region = properties.containsKey(Config.AWS_LAMBDA_REGION) ?
                     properties.getProperty(Config.AWS_LAMBDA_REGION) : Config.AWS_LAMBDA_REGION_DEFAULT;
-            timeout = properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ?
-                    properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT;
+            timeout = properties.containsKey(Config.AWS_CLIENT_LAMBDA_TIMEOUT) ?
+                    properties.getProperty(Config.AWS_CLIENT_LAMBDA_TIMEOUT) : Config.AWS_CLIENT_LAMBDA_TIMEOUT_DEFAULT;
             arn = properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ARN) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ARN) : Config.AWS_LAMBDA_FUNCTION_ARN_DEFAULT;
             debug = Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_DEBUG) ?
