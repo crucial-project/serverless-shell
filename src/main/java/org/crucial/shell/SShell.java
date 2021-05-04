@@ -44,7 +44,7 @@ public class SShell {
     private boolean debug;
     private LambdaClient lambdaClient;
     private ClientConfiguration lambdaClientConf;
-    private Integer timeout;
+    private String timeout;
     private String region;
     private String arn;
 
@@ -99,7 +99,7 @@ public class SShell {
                             UrlConnectionHttpClient
                                     .builder()
                                     .connectionTimeout(
-                                            Duration.ofSeconds(timeout)
+                                            Duration.ofSeconds(Long.parseLong(timeout))
                                     )
                     )
                     .region(Region.of(region))
@@ -109,8 +109,8 @@ public class SShell {
             lambdaClientConf
             .setConnectionTimeout(
                 Duration.ofMillis(
-                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_TIMEOUT) ? 
-                    properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_TIMEOUT_DEFAULT)
+                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ? 
+                    properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
                     )
                 );
 
