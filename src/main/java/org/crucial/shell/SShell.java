@@ -11,7 +11,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 
-import java.lang.Object.com.amazonaws.ClientConfiguration;
+//import java.lang.Object.com.amazonaws.ClientConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -105,14 +105,14 @@ public class SShell {
                     .region(Region.of(region))
                     .build();
 
-            lambdaClientConf = new ClientConfiguration();
-            lambdaClientConf
-            .setConnectionTimeout(
-                Duration.ofMillis(
-                    Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ? 
-                    properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
-                    )
-                );
+            //lambdaClientConf = new ClientConfiguration();
+            //lambdaClientConf
+            //.setConnectionTimeout(
+            //    Duration.ofMillis(
+            //        Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ? 
+            //        properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
+            //        )
+            //    );
 
             // Invoke
             GetFunctionRequest gf = GetFunctionRequest.builder().functionName(arn).build();
