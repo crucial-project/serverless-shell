@@ -110,7 +110,7 @@ public class SShell {
             .setConnectionTimeout(
                 Duration.ofMillis(
                     Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ? 
-                    properties.getProperty(Config.AWS_LAMBDA_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
+                    properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
                     )
                 );
 
