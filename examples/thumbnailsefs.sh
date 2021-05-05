@@ -161,7 +161,7 @@ runthumbnailslocal()
 
 	echo ""
 	echo START PROCESSING
-        sleep 2
+    sleep 2
 
 	NBJOBS=$1
 

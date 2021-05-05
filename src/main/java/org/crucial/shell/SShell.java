@@ -11,6 +11,13 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.lambda.AWSLambda;
+import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
+import com.amazonaws.services.lambda.model.InvokeRequest;
+import com.amazonaws.services.lambda.model.InvokeResult;
+import com.amazonaws.services.lambda.model.ServiceException;
+
 //import java.lang.Object.com.amazonaws.ClientConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -43,9 +50,10 @@ public class SShell {
     private boolean asynchronous;
     private boolean debug;
     private LambdaClient lambdaClient;
-    //private ClientConfiguration lambdaClientConf;
+    private ClientConfiguration lambdaClientConf;
     private String timeout;
     private String region;
+    private String funcname;
     private String arn;
 
     public static void main(String[] args) {
@@ -83,6 +91,8 @@ public class SShell {
             InputStream is = new ByteArrayInputStream(Files.readAllBytes(path));
             properties.load(is);
 
+            funcname = properties.containsKey(Config.AWS_LAMBDA_FUNCTION_NAME) ?
+                    properties.getProperty(Config.AWS_LAMBDA_FUNCTION_NAME) : Config.AWS_LAMBDA_FUNCTION_NAME_DEFAULT;
             region = properties.containsKey(Config.AWS_LAMBDA_REGION) ?
                     properties.getProperty(Config.AWS_LAMBDA_REGION) : Config.AWS_LAMBDA_REGION_DEFAULT;
             timeout = properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ?
@@ -93,6 +103,41 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_DEBUG) : Config.AWS_LAMBDA_DEBUG_DEFAULT);
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
+
+
+            lambdaClientConf = new ClientConfiguration(); 
+            lambdaClientConf.setSocketTimeout(600000); 
+            lambdaClientConf.setConnectionTimeout(5000);
+            lambdaClientConf.setMaxErrorRetry(2);
+
+            InvokeRequest invokeRequest = new InvokeRequest()
+                            .withFunctionName(funcname)
+                            .withPayload(command);
+                            
+            InvokeResult invokeResult = null;
+            
+            try {
+                AWSLambdaClientBuilder.setClientConfiguration(lambdaClientConf);
+
+                AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
+                                .withCredentials(new ProfileCredentialsProvider())
+                                .withRegion(region).build();
+            
+                invokeResult = awsLambda.invoke(invokeRequest);
+            
+                String ans = new String(invokeResult.getPayload().array(), StandardCharsets.UTF_8);
+            
+                //write out the return value
+                System.out.println(ans);
+            
+            } catch (ServiceException e) {
+                        System.out.println(e);
+            }
+            
+            System.out.println(invokeResult.getStatusCode());
+            
+
+            /*
             lambdaClient = LambdaClient
                     .builder()
                     .httpClientBuilder(
@@ -104,16 +149,19 @@ public class SShell {
                     )
                     .region(Region.of(region))
                     .build();
+             */
 
-            //lambdaClientConf = new ClientConfiguration();
+           
+
             //lambdaClientConf
             //.setConnectionTimeout(
             //    Duration.ofMillis(
             //        Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ? 
             //        properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
             //        )
-            //    );
+            //);
 
+            /*
             // Invoke
             GetFunctionRequest gf = GetFunctionRequest.builder().functionName(arn).build();
             lambdaClient.getFunction(gf);
@@ -148,6 +196,7 @@ public class SShell {
                 System.err.print(ret[1]);
                 System.out.print(ret[0]);
             }
+            */
 
         } catch (Exception e) {
             e.printStackTrace();
