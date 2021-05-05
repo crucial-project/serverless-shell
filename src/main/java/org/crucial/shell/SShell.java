@@ -15,12 +15,13 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
 import com.amazonaws.services.lambda.model.ServiceException;
 
-//import java.lang.Object.com.amazonaws.ClientConfiguration;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,7 +52,7 @@ public class SShell {
     private boolean asynchronous;
     private boolean debug;
     private LambdaClient lambdaClient;
-    private ClientConfiguration lambdaClientConf;
+    //private ClientConfiguration lambdaClientConf;
     private String timeout;
     private String region;
     private String funcname;
@@ -106,7 +107,7 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
 
 
-            lambdaClientConf = new ClientConfiguration(); 
+            ClientConfiguration lambdaClientConf = new ClientConfiguration(); 
             lambdaClientConf.setSocketTimeout(600000); 
             lambdaClientConf.setConnectionTimeout(5000);
             lambdaClientConf.setMaxErrorRetry(2);
@@ -118,10 +119,11 @@ public class SShell {
             InvokeResult invokeResult = null;
             
             try {
-                AWSLambdaClientBuilder.setClientConfiguration(lambdaClientConf);
+                //AWSLambdaClientBuilder.setClientConfiguration(lambdaClientConf);
 
                 AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
                                 .withCredentials(new ProfileCredentialsProvider())
+				.withClientConfiguration(lambdaClientConf)
                                 .withRegion(region).build();
             
                 invokeResult = awsLambda.invoke(invokeRequest);
