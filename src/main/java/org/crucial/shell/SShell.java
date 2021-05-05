@@ -107,10 +107,10 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
 
 
-            ClientConfiguration lambdaClientConf = new ClientConfiguration(); 
-            lambdaClientConf.setSocketTimeout(600000); 
-            lambdaClientConf.setConnectionTimeout(5000);
-            lambdaClientConf.setMaxErrorRetry(2);
+            ClientConfiguration lambdaClientConf = new ClientConfiguration()
+                .withMaxConnections(10)
+                .withConnectionTimeout(5000)
+                .withSocketTimeout(600000);
 
             InvokeRequest invokeRequest = new InvokeRequest()
                             .withFunctionName(funcname)
