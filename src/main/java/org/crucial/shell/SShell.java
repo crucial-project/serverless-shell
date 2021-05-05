@@ -106,11 +106,12 @@ public class SShell {
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
 
-
+            /*
             ClientConfiguration lambdaClientConf = new ClientConfiguration()
                 .withMaxConnections(10)
                 .withConnectionTimeout(5000)
                 .withSocketTimeout(600000);
+            */
 
             InvokeRequest invokeRequest = new InvokeRequest()
                             .withFunctionName(funcname)
@@ -123,11 +124,17 @@ public class SShell {
 
                 AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
                                 .withCredentials(new ProfileCredentialsProvider())
+                                .withRegion(region).build();
+            
+                /* 
+                AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
+                                .withCredentials(new ProfileCredentialsProvider())
 				.withClientConfiguration(lambdaClientConf)
                                 .withRegion(region).build();
             
                 invokeResult = awsLambda.invoke(invokeRequest);
-            
+                */
+
                 String ans = new String(invokeResult.getPayload().array(), StandardCharsets.UTF_8);
             
                 //write out the return value
