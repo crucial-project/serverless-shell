@@ -245,9 +245,9 @@ buildperfbreakdownthumbnailssummary() {
    durationoverall=$measure
  done < durationoverall.out
 
- echo "duration Download: $durationnanodownloadacc nanoseconds"
- echo "duration Convert: $durationnanoconvertacc nanoseconds"
- echo "duration Upload: $durationnanouploadacc nanoseconds"
+ echo "Aggregated duration Download: $durationnanodownloadacc nanoseconds"
+ echo "Aggregated duration Convert: $durationnanoconvertacc nanoseconds"
+ echo "Aggregated duration Upload: $durationnanouploadacc nanoseconds"
 
  #echo $($durationnanoioacc/1000000)
  #echo $($durationnanocomputeacc/1000000)
@@ -265,16 +265,24 @@ buildperfbreakdownthumbnailssummary() {
  #durationcomputeacc=$((durationnanocomputeacc / 1000000))
  #durationsyncacc=$((durationnanosyncacc / 1000000))
 
- durationdownloadaccsecs=$((durationdownloadaccsecs/$2))
- durationconvertaccsecs=$((durationconvertaccsecs/$2))
- durationuploadaccsecs=$((durationuploadaccsecs/$2))
- durationinvoke=$(($durationoverall-$durationdownloadaccsecs-$durationconvertaccsecs-$durationuploadaccsecs))
+ durationdownloadsecs=$((durationdownloadaccsecs/$2))
+ durationconvertsecs=$((durationconvertaccsecs/$2))
+ durationuploadsecs=$((durationuploadaccsecs/$2))
+
+ #durationdownloadavgsecs=$((durationdownloadsecs/$3))
+ #durationconvertavgsecs=$((durationconvertsecs/$3))
+ #durationuploadavgsecs=$((durationuploadsecs/$3))
+
+ #durationoverallavg=$((durationoverall / $3))
+
+ #durationinvoke=$(($durationoverallavg-$durationdownloadavgsecs-$durationconvertavgsecs-$durationuploadavgsecs))
+ durationinvoke=$(($durationoverall-$durationdownloadsecs-$durationconvertsecs-$durationuploadsecs))
 
  echo "Thumbnails - Performance Breakdown Summary"
 
- echo "duration Download: $durationdownloadaccsecs seconds"
- echo "duration Convert: $durationconvertaccsecs seconds"
- echo "duration Upload: $durationuploadaccsecs seconds"
+ echo "duration Download: $durationdownloadsecs seconds"
+ echo "duration Convert: $durationconvertsecs seconds"
+ echo "duration Upload: $durationuploadsecs seconds"
  echo "duration lambda invoke: $durationinvoke seconds"
  echo "Overall duration: $durationoverall seconds"
 
@@ -341,8 +349,6 @@ buildperfbreakdownthumbnailsasynccksummary() {
  then
 	 numckruns=$(($numckruns+1))
  fi
-
- 
 
  durationdownloadaccsecs=$((durationnanodownloadacc / 1000000000))
  durationconvertaccsecs=$((durationnanoconvertacc / 1000000000))
@@ -433,9 +439,9 @@ buildperfbreakdownsummary() {
 
 }
 
-#buildperfbreakdownthumbnailssummary $1 $2
+buildperfbreakdownthumbnailssummary $1 $2
 #buildperfbreakdownparallelnoopsummary $1 $2 $3
-buildperfbreakdownthumbnailsnoopsummary $1 $2 $3
+#buildperfbreakdownthumbnailsnoopsummary $1 $2 $3
 #buildperfbreakdownthumbnailsasynccksummary $1 $2 $3
 #buildperfbreakdownefsiosummary $1 $2 $3 $4
 #buildperfbreakdownlambdalatencysummary $1 $2 $3 $4

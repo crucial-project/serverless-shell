@@ -97,10 +97,6 @@ runthumbnails()
 
 	cat thumbnails.out 
 
-	sshell "echo Number of elements in /tmp before operation: "
-	sshell "ls /tmp/ | wc -l"
-	sshell "ls /tmp/"
-
 	echo ""
 	echo ""
 	echo START PROCESSING
@@ -109,22 +105,16 @@ runthumbnails()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-
-	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; clock3=\\\$(date +%s%N) ; cd /tmp ; rm -f THUMB* ; rm -f *.png ; cd .. ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; clock6=\\\$(date +%s%N) ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
-
+	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ========== ; echo BEGIN LAMBDA; echo ========== ; echo lambda: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \\\$FILEINDEX ; clock3=\\\$(date +%s%N) ; cp $THUMBNAILSLAMBDAPATH/,, /tmp ; clock4=\\\$(date +%s%N) ; echo BEFORE MAGICK : ls /tmp ; ls /tmp | wc -l ; magick convert /tmp/\\\$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 /tmp/THUMB\\\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\\\$(date +%s%N) ; cp /tmp/THUMB\\\$FILEINDEX $THUMBNAILSLAMBDAPATH ; clock6=\\\$(date +%s%N) ; cd /tmp ;  rm -rf /tmp/THUMB* ; rm -rf /tmp/pic* ; cd .. ; echo Number of elements in /tmp: ; ls /tmp/ | wc -l ;  echo Content of thumbnails AWS EFS repository: ; durationdownload=\\\$(expr \\\$clock4 - \\\$clock3) ; durationconvert=\\\$(expr \\\$clock5 - \\\$clock4) ; durationupload=\\\$(expr \\\$clock6 - \\\$clock5) ; echo durationdownload = \\\$durationdownload ; echo durationconvert = \\\$durationconvert ; echo durationupload = \\\$durationupload ; echo ========== ; echo END ; echo ========== \"" 
 	clock2=`date +%s`
 
 	durationthumbnails=`expr $clock2 - $clock1`
 
 	echo ""
 	echo ""
-	echo ""
-	echo DURATION THUMBNAILS : $durationthumbnails seconds
 	echo durationoverall = $durationthumbnails 
 
-
 	echo "Check EFS thumbnails repository"
-
 
 	echo "Number of elements in EFS thumbnails repository after operation: "
 	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
@@ -137,9 +127,6 @@ runthumbnails()
 	echo Check number of thumbnail pictures in EFS/thumbnails directory
 	ls $THUMBNAILSEC2PATH/ | grep THUMB | wc -l
 
-	echo "CHECK AWS LAMBDA /tmp"
-	sshell "ls -alsth /tmp"
-	#sshell "rm -rf /tmp/*"
 }
 
 runthumbnailslocal()
@@ -161,7 +148,7 @@ runthumbnailslocal()
 
 	echo ""
 	echo START PROCESSING
-    sleep 2
+        sleep 2
 
 	NBJOBS=$1
 
@@ -506,8 +493,8 @@ do
   echo =================================
   echo $ijob parallel jobs
   #runthumbnails $ijob 
-  #runthumbnails $i > runthumbnails.$i.njobs.out
-  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i 
+  runthumbnails $ijob > runthumbnails.$ijob.njobs.out
+  bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 echo ""
@@ -519,7 +506,7 @@ for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  runthumbnailslocal $ijob 
+  #runthumbnailslocal $ijob 
   #runthumbnailslocal $ijob > runthumbnailslocal.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnailslocal.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
