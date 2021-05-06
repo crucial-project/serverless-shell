@@ -120,7 +120,7 @@ public class SShell {
             InvokeResult invokeResult = null;
             
             try {
-                AWSLambdaClientBuilder.setClientConfiguration(lambdaClientConf);
+                //AWSLambdaClientBuilder.setClientConfiguration(lambdaClientConf);
 
                 /*
                 AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
