@@ -1,37 +1,19 @@
 package org.crucial.shell;
 
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.core.internal.http.loader.DefaultSdkHttpClientBuilder;
-import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
-import com.amazonaws.services.lambda.model.ServiceException;
-
 import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 public class SShell {
 
@@ -52,10 +34,7 @@ public class SShell {
     private boolean asynchronous;
     private boolean debug;
     private LambdaClient lambdaClient;
-    //private ClientConfiguration lambdaClientConf;
-    private String timeout;
     private String region;
-    private String funcname;
     private String arn;
 
     public static void main(String[] args) {
@@ -93,86 +72,18 @@ public class SShell {
             InputStream is = new ByteArrayInputStream(Files.readAllBytes(path));
             properties.load(is);
 
-            funcname = properties.containsKey(Config.AWS_LAMBDA_FUNCTION_NAME) ?
-                    properties.getProperty(Config.AWS_LAMBDA_FUNCTION_NAME) : Config.AWS_LAMBDA_FUNCTION_NAME_DEFAULT;
             region = properties.containsKey(Config.AWS_LAMBDA_REGION) ?
                     properties.getProperty(Config.AWS_LAMBDA_REGION) : Config.AWS_LAMBDA_REGION_DEFAULT;
-            timeout = properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ?
-                    properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT;
             arn = properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ARN) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ARN) : Config.AWS_LAMBDA_FUNCTION_ARN_DEFAULT;
             debug = Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_DEBUG) ?
                     properties.getProperty(Config.AWS_LAMBDA_DEBUG) : Config.AWS_LAMBDA_DEBUG_DEFAULT);
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
-
-            
-            ClientConfiguration lambdaClientConf = new ClientConfiguration()
-                .withMaxConnections(10)
-                .withConnectionTimeout(5000)
-                .withSocketTimeout(600000);
-            
-
-            InvokeRequest invokeRequest = new InvokeRequest()
-                            .withFunctionName(funcname)
-                            .withPayload(command);
-                            
-            InvokeResult invokeResult = null;
-            
-            try {
-                //AWSLambdaClientBuilder.setClientConfiguration(lambdaClientConf);
-
-                /*
-                AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
-                                .withCredentials(new ProfileCredentialsProvider())
-                                .withRegion(Regions.US_WEST_2).build();
-                */
-                
-                AWSLambda awsLambda = AWSLambdaClientBuilder.standard()
-                                .withCredentials(new ProfileCredentialsProvider())
-				.withClientConfiguration(lambdaClientConf)
-                                .withRegion(region).build();
-            
-                invokeResult = awsLambda.invoke(invokeRequest);
-                
-
-                String ans = new String(invokeResult.getPayload().array(), StandardCharsets.UTF_8);
-            
-                //write out the return value
-                System.out.println(ans);
-            
-            } catch (ServiceException e) {
-                        System.out.println(e);
-            }
-            
-            System.out.println(invokeResult.getStatusCode());
-            
-
-            /*
-            lambdaClient = LambdaClient
-                    .builder()
-                    .httpClientBuilder(
-                            UrlConnectionHttpClient
-                                    .builder()
-                                    .connectionTimeout(
-                                            Duration.ofSeconds(Long.parseLong(timeout))
-                                    )
-                    )
+            lambdaClient = LambdaClient.builder()
                     .region(Region.of(region))
                     .build();
-             */
 
-           
-
-            //lambdaClientConf
-            //.setConnectionTimeout(
-            //    Duration.ofMillis(
-            //        Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ? 
-            //        properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT)
-            //        )
-            //);
-
-            /*
             // Invoke
             GetFunctionRequest gf = GetFunctionRequest.builder().functionName(arn).build();
             lambdaClient.getFunction(gf);
@@ -207,7 +118,6 @@ public class SShell {
                 System.err.print(ret[1]);
                 System.out.print(ret[0]);
             }
-            */
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -227,3 +137,4 @@ public class SShell {
     }
 
 }
+
