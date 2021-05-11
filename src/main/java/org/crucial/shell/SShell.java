@@ -64,15 +64,11 @@ public class SShell {
 
     public void doMain(String[] args) {
 
-	    /*
         if (args.length<=1) {
             usage();
         }
-*/
         try {
 
-        System.out.println("SSHELL START");	
-	/*	
             // Command
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(ALIASES+" ");
@@ -90,9 +86,7 @@ public class SShell {
                 default:
                     usage();
             }
-	    */
-            //String command = stringBuilder.toString();
-            String command = "ls";
+            String command = stringBuilder.toString();
 
             // Configuration
             Path path = Paths.get(Config.CONFIG_FILE);
