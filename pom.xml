@@ -16,6 +16,7 @@
         <version.jboss-logging>1.0.0.Final</version.jboss-logging>
         <version.graalvm>19.3.0</version.graalvm>
         <version.aws.lambda.java>1.2.1</version.aws.lambda.java>
+        <version.aws.sdk.lambda.java>1.11.76</version.aws.sdk.lambda.java>
         <version.software.amazon.awssdk>2.15.26</version.software.amazon.awssdk>
         <version.apache.httpclient>4.5.13</version.apache.httpclient>
         <version.gson>2.8.6</version.gson>
@@ -36,8 +37,14 @@
             <artifactId>commons-logging-jboss-logging</artifactId>
             <version>${version.jboss-logging}</version>
         </dependency>
+	
+	<dependency>
+    	    <groupId>com.amazonaws</groupId>
+    	    <artifactId>aws-java-sdk-lambda</artifactId>
+	    <version>${version.aws.sdk.lambda.java}</version>
+	</dependency>
 
-        <dependency>
+	<dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-core</artifactId>
             <version>${version.aws.lambda.java}</version>

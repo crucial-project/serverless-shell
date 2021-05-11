@@ -18,6 +18,8 @@ fi
 AWS_ACCOUNT=$(config aws.account)
 AWS_REGION=$(config aws.region)
 AWS_ROLE=$(config aws.iam.role)
+AWS_LAMBDA_TIMEOUT=$(config aws.lambda.timeout)
+AWS_LAMBDA_MEMORY=$(config aws.lambda.memory)
 AWS_LAMBDA_FUNCTION_NAME=$(config aws.lambda.function.name)
 AWS_LAMBDA_FUNCTION_HANDLER=$(config aws.lambda.function.handler)
 AWS_LAMBDA_VPC_SUBNETS=$(config aws.lambda.vpc.subnets)
@@ -42,8 +44,8 @@ then
     	--function-name ${AWS_LAMBDA_FUNCTION_NAME} \
     	--layers arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT}:layer:serverless-bash:${LAYER_VERSION} \
     	--runtime java11 \
-    	--timeout 30 \
-    	--memory-size 1024 \
+    	--timeout ${AWS_LAMBDA_TIMEOUT} \
+    	--memory-size ${AWS_LAMBDA_MEMORY} \
     	--role ${AWS_ROLE} \
     	--handler ${AWS_LAMBDA_FUNCTION_HANDLER} \
     	--zip-file fileb://${ZIP_DIR}/code.zip
