@@ -14,7 +14,7 @@
         <version.dso>2.0</version.dso>
         <version.slf4j-simple>1.7.28</version.slf4j-simple>
         <version.jboss-logging>1.0.0.Final</version.jboss-logging>
-        <version.graalvm>21.1.0</version.graalvm>
+        <version.graalvm>19.3.0</version.graalvm>
         <version.aws.lambda.java>1.2.1</version.aws.lambda.java>
         <version.aws.sdk.lambda.java>1.11.76</version.aws.sdk.lambda.java>
         <version.software.amazon.awssdk>2.15.26</version.software.amazon.awssdk>
@@ -169,7 +169,7 @@
                         --enable-https
 	 		--enable-all-security-services
 			-H:+ReportUnsupportedElementsAtRuntime
-                        -H:TraceClassInitialization=1
+                        -H:+TraceClassInitialization
                         -H:IncludeResources='resources/simplerlogger.properties'
                         --allow-incomplete-classpath
                     </buildArgs>
