@@ -14,7 +14,7 @@
         <version.dso>2.0</version.dso>
         <version.slf4j-simple>1.7.28</version.slf4j-simple>
         <version.jboss-logging>1.0.0.Final</version.jboss-logging>
-        <version.graalvm>19.3.0</version.graalvm>
+        <version.graalvm>21.1.0</version.graalvm>
         <version.aws.lambda.java>1.2.1</version.aws.lambda.java>
         <version.aws.sdk.lambda.java>1.11.76</version.aws.sdk.lambda.java>
         <version.software.amazon.awssdk>2.15.26</version.software.amazon.awssdk>
@@ -111,7 +111,15 @@
     </dependencies>
 
     <build>
-        <plugins>
+	    <plugins>
+           <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.2.1</version>
+            <configuration>
+                <mainClass>org.crucial.shell.SShell</mainClass>
+            </configuration>
+        </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -167,13 +175,11 @@
                         --allow-incomplete-classpath
                         --enable-http
                         --enable-https
-                        --enable-url-protocols=http,https
-                        --enable-all-security-services
-                        -H:+ReportUnsupportedElementsAtRuntime
-                        -H:+TraceClassInitialization
+	 		--enable-all-security-services
+			-H:+ReportUnsupportedElementsAtRuntime
+                        -H:TraceClassInitialization=1
                         -H:IncludeResources='resources/simplerlogger.properties'
                         --allow-incomplete-classpath
-                        --initialize-at-build-time=org.slf4j.impl.SimpleLoggerFactory,org.slf4j.impl.SimpleLogger,org.slf4j.impl.SimpleLoggerConfiguration,org.slf4j.impl.StaticLoggerBinder,org.slf4j.simple.SimpleLogger,org.slf4j.LoggerFactory,org.apache.commons.logging.LogFactory,org.slf4j.helpers.SubstituteLoggerFactory,org.slf4j.helpers.Util,org.slf4j.helpers.NOPLoggerFactory,org.slf4j.impl.OutputChoice
                     </buildArgs>
                 </configuration>
             </plugin>
