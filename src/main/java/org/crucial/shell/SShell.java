@@ -1,6 +1,7 @@
 package org.crucial.shell;
 
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
@@ -10,6 +11,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -81,6 +84,7 @@ public class SShell {
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
             lambdaClient = LambdaClient.builder()
+                    .httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(50000)))
                     .region(Region.of(region))
                     .build();
 
