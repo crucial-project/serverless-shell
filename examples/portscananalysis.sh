@@ -16,25 +16,28 @@ runlocalportscananalysis()
 {
 
   clock1=`date +%s`
-  head -n 1000000 $JSONFILE | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > annotated 
+  head -n 100 $JSONFILE | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > annotated 
   clock2=`date +%s`
   durationportscanannotate=`expr $clock2 - $clock1`
   echo "Local Port scan 1st part - annotate: $durationportscanannotate s" 
 }
-
 
 runlambdaportscananalysis()
 {
 
   NBJOBS=$1
 
+  echo START STEP 1
   clock1=`date +%s`
-  #cat $JSONFILE | parallel -j$NBJOBS -I,, --env sshell "sshell \" zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json \"" > $EFSEC2PORTSCANPATH/annotated
-  cat $JSONFILE | parallel -j$NBJOBS -I,, --env sshell "sshell \" zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json \"" 
+  head -n 100 $JSONFILE | parallel -j$NBJOBS -I,, --env sshell "sshell \" zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json \"" > $EFSEC2PORTSCANPATH/annotated
+  #cat $JSONFILE | parallel -j$NBJOBS -I,, --env sshell "sshell \" zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json \"" 
+  echo START STEP 2
   clock2=`date +%s`
   cat $EFSEC2PORTSCANPATH/annotated | parallel -j$NBJOBS -I,, --env sshell "sshell \" jq \""".ip\""" | tr -d \"""'"\""' \"" > $EFSEC2PORTSCANPATH/filefilter1
+  echo START STEP 3
   clock3=`date +%s`
   cat $EFSEC2PORTSCANPATH/annotated | parallel -j$NBJOBS -I,, --env sshell "sshell \" jq -c \""".zannotate.routing.asn\""" \"" > $EFSEC2PORTSCANPATH/filefiter2
+  echo START STEP 4
   clock4=`date +%s`
   pr -mts, filefilter1 filefilter2 | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
   clock5=`date +%s`
@@ -54,6 +57,7 @@ runlambdaportscananalysis()
 }
 
 njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
+#njobs=(100 200 300 400 500 600 700 800)
 
 echo Run local port scan analysis
 #cleanup

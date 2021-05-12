@@ -5,7 +5,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 EFSIODIR=$HOME/efs/benchio/2g
 EFSIOLAMBDADIR=/mnt/efsimttsp/benchio/2g
 NBRUNS=10
-SIZEFILE=2000 # 2 GB
+SIZEFILE=10000 # 10 GB
 
 cleanup()
 {
@@ -68,7 +68,7 @@ runefsiobenchdownloadref()
 
   echo start download 
   clock5=`date +%s` 
-  sshell "echo sshell - download a 2GB file ; clock7=\$(date +%s) ; cp /mnt/efsimttsp/benchio/2g/file1.2g.txt /dev/null ; clock8=\$(date +%s) ; echo finished download; durationdownload=\$(expr \$clock8 - \$clock7) ; echo duration download: \$durationdownload seconds " 
+  sshell "echo sshell - download a 10GB file ; clock7=\$(date +%s) ; cp /mnt/efsimttsp/benchio/read/10g/file1.10g.txt /dev/null ; clock8=\$(date +%s) ; echo finished download; durationdownload=\$(expr \$clock8 - \$clock7) ; echo duration download: \$durationdownload seconds " 
   clock6=`date +%s`
   echo download done 
   durationread=`expr $clock6 - $clock5` 
@@ -173,15 +173,15 @@ echo LAUNCH EFS I/O - DOWNLOAD
 
 cleanup
 
-testsshelltimeout
-#runefsiobenchdownloadref
+#testsshelltimeout
+runefsiobenchdownloadref
 #testparallelsshell
 
 for ijob in "${njobs[@]}"
 do
    echo ===============================
    echo nb jobs: $ijob
-   runefsiobenchdownload $ijob
+   #runefsiobenchdownload $ijob
 done
 
 for strsizeelt in "${strSizeArrayDownload[@]}"
