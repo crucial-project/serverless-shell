@@ -39,6 +39,7 @@ public class SShell {
     private LambdaClient lambdaClient;
     private String region;
     private String arn;
+    private int timeout;
 
     public static void main(String[] args) {
         new SShell().doMain(args);
@@ -83,8 +84,11 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_DEBUG) : Config.AWS_LAMBDA_DEBUG_DEFAULT);
             asynchronous |= Boolean.parseBoolean(properties.containsKey(Config.AWS_LAMBDA_FUNCTION_ASYNC) ?
                     properties.getProperty(Config.AWS_LAMBDA_FUNCTION_ASYNC) : Config.AWS_LAMBDA_FUNCTION_ASYNC_DEFAULT);
+            timeout = Integer.parseInt(properties.containsKey(Config.AWS_LAMBDA_CLIENT_TIMEOUT) ?
+                    properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT);
+
             lambdaClient = LambdaClient.builder()
-                    .httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(50000)))
+                    .httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(timeout)))
                     .region(Region.of(region))
                     .build();
 
