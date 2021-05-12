@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -88,7 +87,7 @@ public class SShell {
                     properties.getProperty(Config.AWS_LAMBDA_CLIENT_TIMEOUT) : Config.AWS_LAMBDA_CLIENT_TIMEOUT_DEFAULT);
 
             lambdaClient = LambdaClient.builder()
-                    .httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(timeout)))
+                    .httpClientBuilder(UrlConnectionHttpClient.builder().socketTimeout(Duration.ofSeconds(timeout)))
                     .region(Region.of(region))
                     .build();
 
