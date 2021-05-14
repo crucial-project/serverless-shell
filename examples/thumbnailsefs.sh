@@ -154,7 +154,7 @@ runthumbnailslocal()
 
 	clock1=`date +%s`
 
-	cat thumbnails.out | parallel -j$NBJOBS -I,, " echo ========== ; echo BEGIN LOCAL; echo ========== ; clock3=\$(date +%s%N) ; rm -f THUMB* ; rm -f *.png ; echo element: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \$FILEINDEX ; cp $THUMBNAILSEC2PATH/,, . ; clock4=\$(date +%s%N) ; echo BEFORE MAGICK : ls . | wc -l ; magick convert \$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 THUMB\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\$(date +%s%N) ; cp THUMB\$FILEINDEX $THUMBNAILSEC2PATH ;  rm -rf /tmp/THUMB* ; rm -rf pic* ; clock6=\$(date +%s%N) ; echo Number of elements in .: ; ls . | wc -l ; echo Content of thumbnails AWS EFS repository: ; durationdownload=\$(expr \$clock4 - \$clock3) ; durationconvert=\$(expr \$clock5 - \$clock4) ; durationupload=\$(expr \$clock6 - \$clock5) ; echo durationdownload = \$durationdownload ; echo durationconvert = \$durationconvert ; echo durationupload = \$durationupload ; echo ========== ; echo END ; echo ========== " 
+	cat thumbnails.out | parallel -j$NBJOBS -I,, " echo ========== ; echo BEGIN LOCAL; echo ========== ; clock3=\$(date +%s%N) ; echo element: ,, ; FILEINDEX=,, ; echo FILEINDEX: ; echo \$FILEINDEX ; cp $THUMBNAILSEC2PATH/,, . ; clock4=\$(date +%s%N) ; echo BEFORE MAGICK : ls . | wc -l ; magick convert \$FILEINDEX -thumbnail 70x70^ -unsharp 0x.4 THUMB\$FILEINDEX ; echo AFTER MAGICK : ; clock5=\$(date +%s%N) ; cp THUMB\$FILEINDEX $THUMBNAILSEC2PATH ; rm -f THUMB\$FILEINDEX ; rm -f \$FILEINDEX ; clock6=\$(date +%s%N) ; echo Number of elements in .: ; ls . | wc -l ; echo Content of thumbnails AWS EFS repository: ; durationdownload=\$(expr \$clock4 - \$clock3) ; durationconvert=\$(expr \$clock5 - \$clock4) ; durationupload=\$(expr \$clock6 - \$clock5) ; echo durationdownload = \$durationdownload ; echo durationconvert = \$durationconvert ; echo durationupload = \$durationupload ; echo ========== ; echo END ; echo ========== " 
 
 	clock2=`date +%s`
 
@@ -493,8 +493,8 @@ do
   echo =================================
   echo $ijob parallel jobs
   #runthumbnails $ijob 
-  runthumbnails $ijob > runthumbnails.$ijob.njobs.out
-  bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob 
+  #runthumbnails $ijob > runthumbnails.$ijob.njobs.out
+  #bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 echo ""
@@ -507,8 +507,8 @@ do
   echo =================================
   echo $ijob parallel jobs
   #runthumbnailslocal $ijob 
-  #runthumbnailslocal $ijob > runthumbnailslocal.$ijob.njobs.out
-  #bash examples/perfbreakdown.sh runthumbnailslocal.$ijob.njobs.out $ijob 
+  runthumbnailslocal $ijob > runthumbnailslocal.$ijob.njobs.out
+  bash examples/perfbreakdown.sh runthumbnailslocal.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
 done
 echo ""
