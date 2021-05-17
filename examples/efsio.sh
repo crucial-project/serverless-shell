@@ -118,7 +118,7 @@ runefsiobenchdownload()
     echo iter: $iter
     #sleep 2
     clock9=`date +%s`
-    head -n 200 efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ,, ; clock11=\\\$(date +%s) ; cp $EFSIOLAMBDADIR/,, /dev/null ; clock12=\\\$(date +%s)  ; durationdownloadefs=\\\$(expr \\\$clock12 - \\\$clock11) ; echo duration download efs = \\\$durationdownloadefs seconds \""
+    head -n 950 efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ,, ; clock11=\\\$(date +%s) ; cp $EFSIOLAMBDADIR/,, /dev/null ; clock12=\\\$(date +%s)  ; durationdownloadefs=\\\$(expr \\\$clock12 - \\\$clock11) ; echo duration download efs = \\\$durationdownloadefs seconds \""
     #cat efsio.out | parallel -j10 -I,, --env sshell "sshell \" echo ,, ; clock11=\\\$(date +%s) ; clock12=\\\$(date +%s)  ; durationdownloadefs=\\\$(expr \\\$clock12 - \\\$clock11) ; echo duration download efs = \\\$durationdownloadefs seconds \""
     clock10=`date +%s`
     durationread=`expr $clock10 - $clock9`
@@ -179,8 +179,8 @@ declare -a strSizeArrayDownload=("1m" "10m" "100m")
 declare -a strSizeArrayUpload=("10k" "100k")
 
 #njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-#njobs=(10 20 30 40 60 80 100 200 300 400 500 600 700 800)
-njobs=(20 30 40 60 80 100)
+njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
+#njobs=(20 30 40 60 80 100)
 sizeinputfile=(100 200 300 400 500 600 700 800)
 
 echo LAUNCH EFS I/O - DOWNLOAD
@@ -188,7 +188,7 @@ echo LAUNCH EFS I/O - DOWNLOAD
 cleanup
 
 #testsshelltimeout
-#runefsiobenchdownloadref
+runefsiobenchdownloadref
 #testparallelsshell
 
 for ijob in "${njobs[@]}"
