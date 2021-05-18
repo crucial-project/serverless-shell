@@ -58,8 +58,7 @@ runlambdaportscananalysis()
   mkdir $EFSEC2PORTSCANPATH/ckdir
   cd $EFSEC2PORTSCANPATH/ckdir
   split --verbose -n $CHUNKS $JSONFILEEC2 ckjson*
-  for f in ckjson*; do cat $f | parallel -l 10000 > par$f ; done
-  #split --verbose -n $CHUNKS $JSONFILEEC2 ckjson*
+  #for f in ckjson*; do cat $f | parallel -l 10000 > par$f ; done
   cd -
   echo STEP 2 - annotate each chunk with sshell
   clock2=$(date +%s)
@@ -70,7 +69,7 @@ runlambdaportscananalysis()
   cd $EFSEC2PORTSCANPATH/annotateddir
   #cat $EFSEC2PORTSCANPATH/annotated | parallel -l 10000 > ckannotated
   split --verbose -n ${CHUNKS} $EFSEC2PORTSCANPATH/annotated ckannotated*
-  for fannotated in ckannotated* ; do cat $fannotated | parallel -l 10000 > par$fannotated ; done
+  #for fannotated in ckannotated* ; do cat $fannotated | parallel -l 10000 > par$fannotated ; done
   cd -
   clock4=$(date +%s)
   ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, --env sshell "sshell \" cat $EFSLAMBDAPORTSCANPATH/,, | jq \""".ip\""" | tr -d \"""'"\""' \"" > filefilter1
@@ -94,7 +93,7 @@ runlambdaportscananalysis()
   durationportscanoverall=$(expr $clock7 - $clock1)
 
   echo "Port scan overall: $durationportscanoverall s"
-  echo "Port scan 1st part - split: $durationportscansplit s" 
+  echo "Port scan 1st part - split: $durationportscansplitjson s" 
   echo "Port scan 2nd part - annotate: $durationportscanannotate s" 
   echo "Port scan 3rd part - split annotate: $durationportscansplitannotate s" 
   echo "Port scan 4th part - file filter 1: $durationportscanfilter1 s"
@@ -104,7 +103,8 @@ runlambdaportscananalysis()
 }
 
 #njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
-njobs=(100 200 300 400 500 600 700 800)
+#njobs=(100 200 300 400 500 600 700 800)
+njobs=(10)
 
 echo Run local port scan analysis
 cleanup
