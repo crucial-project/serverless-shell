@@ -4,9 +4,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 EFSIOREAD10GDIR=$HOME/efs/benchio/read/10g
 EFSIOLAMBDADIR=/mnt/efsimttsp/benchio/read/10g
+EFSIOLAMBDADIRWRITE=/mnt/efsimttsp/benchio/write
+EFSIOEC2DIRWRITE=/$HOME/efs/benchio/benchio/write
 NBRUNS=1
-SIZEFILE=10000 # 10 GB
-INPUTSIZE=950
+SIZEFILE=100 # 100 MB
+INPUTSIZE=1000
 
 cleanup()
 {
@@ -89,6 +91,33 @@ runefsiobenchdownloadref()
   echo tranfer rate: $transferrate MB/s
 }
 
+runefsiobenchuploadref()
+{
+  echo Reference - Calculate transfer rate of uploading a 10GB file
+  #sizefile=1000
+
+  durationaccwriteref=0
+  durationavgwriteref=0
+
+  for iter in $(seq 1 $NBRUNS) 
+  do
+    echo $iter
+    clock5=$(date +%s)
+    sshell "dd if=/dev/zero of=$EFSIOLAMBDADIRWRITE/large-file-10gb-$iter.txt count=1024 bs=10485760" 
+    clock6=$(date +%s)
+    durationwriteref=$(expr $clock6 - $clock5)
+    durationaccwriteref=$((durationaccwriteref+$durationwriteref))
+  done
+
+  echo upload done 
+  durationavgwriteref=$((durationaccwriteref / ${NBRUNS}))
+  echo Average duration reference write : $durationavgwriteref seconds	
+
+  transferrate=$(($SIZEFILE / $durationavgwriteref))
+  echo transfer rate: $transferrate MB/s
+}
+
+
 # I/O operations on AWS EFS directory - DOWNLOAD
 runefsiobenchdownload()
 {
@@ -134,38 +163,26 @@ runefsiobenchdownload()
 runefsiobenchupload()
 {
   
-  echo Run EFS IO benchmark - UPLOAD : File size - $1 == Length input file - $2 == Number of parallel jobs - $3
-  SIZEINPUTFILE=$2
-  NBJOBS=$3
-  ls $EFSIODIR | grep $1 > efsio.out 
+  echo Run EFS IO benchmark - UPLOAD :  Number of parallel jobs - $1
+  echo Input size: ${INPUTSIZE}
+  JOBS=$1
   
-  echo Number of lines of output :
-  sleep 2
-  cat efsio.out 
-  cat efsio.out | wc -l > nbfilesefsbench.out
-  cat nbfilesefsbench.out
-
-  sleep 2
-  durationavgwrite=0 
-
-  echo UPLOAD TO AWS EFS
-  sleep 3
+  clock3=$(date +%s)
   # Write to AWS EFS directory
   for iter in $(seq 1 $NBRUNS)
   do
     echo iter : $iter
-    rm -rf $EFSIODIR/write/*
-    clock3=`date +%s`
-    head -n $SIZEINPUTFILE | parallel -j$NBJOBS -I,, --env sshell "sshell \" cp $EFSIOLAMBDADIR/,, /tmp ; clock7=\\\$(date +%s%N) ; cp /tmp/,, $EFSIOLAMBDADIR/write ; clock8=\\\$(date +%s%N) ; cd /tmp ; rm *.png ;cd .. ; durationuploadefs=\\\$(expr \\\$clock8 - \\\$clock7) \""
-    clock4=`date +%s`
-    durationwrite=`expr $clock4 - $clock3`
-    durationavgwrite=$(($durationavgwrite+$durationwrite))
+    seq 1 1 ${INPUTSIZE} | parallel -j$JOBS -I,, --env sshell "sshell \"dd if=/dev/zero of=$EFSIOLAMBDADIRWRITE/large-file-100mb-\$iter-,,-\${PARALLEL_SEQ}.txt count=1024 bs=102400 status=none \""
   done
+  clock4=$(date +%s)
 
-  durationavgwrite=$((durationavgwrite / ${NBRUNS}))
-
-  echo Average duration WRITE : $durationavgwrite seconds
-
+  durationwrite=$(expr $clock4 - $clock3)
+  echo duration UPLOAD : $durationwrite seconds 
+  
+  globaldatasize=$(($SIZEFILE * $INPUTSIZE))
+  transferrate=$((globaldatasize / $durationwrite))
+  echo UPLOAD - transfer rate: $transferrate MB/s
+ 
 }
 
 echo RUN BENCH EFS I/O - Read / Write 
@@ -175,23 +192,24 @@ declare -a strSizeArrayDownload=("1m" "10m" "100m")
 declare -a strSizeArrayUpload=("10k" "100k")
 
 #njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-#njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
-njobs=(40 60 80 400 600 800)
-sizeinputfile=(100 200 300 400 500 600 700 800)
+njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
+#njobs=(40 60 80 400 600 800)
+#sizeinputfile=(100 200 300 400 500 600 700 800)
 
-echo LAUNCH EFS I/O - DOWNLOAD
+echo LAUNCH EFS I/O 
 
 cleanup
 
 #testsshelltimeout
-runefsiobenchdownloadref
+#runefsiobenchdownloadref
+#runefsiobenchuploadref
 #testparallelsshell
 
 for ijob in "${njobs[@]}"
 do
    echo ===============================
    echo nb jobs: $ijob
-   runefsiobenchdownload $ijob
+   runefsiobenchupload $ijob
 done
 
 for strsizeelt in "${strSizeArrayDownload[@]}"
