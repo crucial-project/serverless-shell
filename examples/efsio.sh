@@ -6,6 +6,7 @@ EFSIOREAD10GDIR=$HOME/efs/benchio/read/10g
 EFSIOLAMBDADIR=/mnt/efsimttsp/benchio/read/10g
 NBRUNS=1
 SIZEFILE=10000 # 10 GB
+INPUTSIZE=950
 
 cleanup()
 {
@@ -107,29 +108,24 @@ runefsiobenchdownload()
   headcat=$((2 * ${NBJOBS}))
   echo headcat: $headcat
 
-  durationavgread=0 
-
   echo DOWNLOAD FROM AWS EFS
-  sleep 3
+  sleep 1
 
+  clock9=$(date +%s)
   # Read from AWS EFS directory
   for iter in $(seq 1 $NBRUNS)
   do
     echo iter: $iter
-    #sleep 2
-    clock9=`date +%s`
-    head -n 950 efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ,, ; clock11=\\\$(date +%s) ; cp $EFSIOLAMBDADIR/,, /dev/null ; clock12=\\\$(date +%s)  ; durationdownloadefs=\\\$(expr \\\$clock12 - \\\$clock11) ; echo duration download efs = \\\$durationdownloadefs seconds \""
+    head -n $INPUTSIZE efsio.out | parallel -j$NBJOBS -I,, --env sshell "sshell \" echo ,, ; clock11=\\\$(date +%s) ; cp $EFSIOLAMBDADIR/,, /dev/null ; clock12=\\\$(date +%s)  ; durationdownloadefs=\\\$(expr \\\$clock12 - \\\$clock11) \""
     #cat efsio.out | parallel -j10 -I,, --env sshell "sshell \" echo ,, ; clock11=\\\$(date +%s) ; clock12=\\\$(date +%s)  ; durationdownloadefs=\\\$(expr \\\$clock12 - \\\$clock11) ; echo duration download efs = \\\$durationdownloadefs seconds \""
-    clock10=`date +%s`
-    durationread=`expr $clock10 - $clock9`
-    durationaccread=$((durationaccread+$durationread))
   done
+  clock10=$(date +%s)
 
-  durationavgread=$((durationaccread / ${NBRUNS}))
-  echo Average duration DOWNLOAD : $durationavgread seconds 
+  durationread=$(expr $clock10 - $clock9)
+  echo duration DOWNLOAD : $durationread seconds 
  
-  globaldatasize=$(($SIZEFILE * 200))
-  transferrate=$((globaldatasize / $durationavgread))
+  globaldatasize=$(($SIZEFILE * $INPUTSIZE))
+  transferrate=$((globaldatasize / $durationread))
   echo tranfer rate: $transferrate MB/s
 
 }
@@ -179,8 +175,8 @@ declare -a strSizeArrayDownload=("1m" "10m" "100m")
 declare -a strSizeArrayUpload=("10k" "100k")
 
 #njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
-#njobs=(20 30 40 60 80 100)
+#njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
+njobs=(40 60 80 400 600 800)
 sizeinputfile=(100 200 300 400 500 600 700 800)
 
 echo LAUNCH EFS I/O - DOWNLOAD
