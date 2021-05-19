@@ -39,14 +39,19 @@ testckfile()
 
 runlocalportscananalysis()
 {
+  echo Run Local / SEQ Port Scan analysis
   clock1=$(date +%s)
-  cat $JSONFILE | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > $EFSEC2PORTSCANPATH/annotated 
+  echo STEP 1 - Annotate
+  cat $JSONFILEEC2 | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > $EFSEC2PORTSCANPATH/annotated 
   clock2=$(date +%s)
-  cat $EC2PORTSCANPATH/annotated | jq ".ip" | tr -d '"' > $EC2PORTSCANPATH/extract_ip
+  echo STEP 2 - Extract IP
+  cat $EFSEC2PORTSCANPATH/annotated | jq ".ip" | tr -d '"' > $EFSEC2PORTSCANPATH/extract_ip
   clock3=$(date +%s)
-  cat $EC2PORTSCANPATH/annotated | jq -c ".zannotate.routing.asn" > $EC2PORTSCANPATH/extract_asn
+  echo STEP 3 - Extract ASN
+  cat $EFSEC2PORTSCANPATH/annotated | jq -c ".zannotate.routing.asn" > $EFSEC2PORTSCANPATH/extract_asn
   clock4=$(date +%s)
-  pr -mts, $EC2PORTSCANPATH/extract_ip $EC2PORTSCANPATH/extract_asn | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EC2PORTSCANPATH/as_popularity
+  echo STEP 4 - Calculate popularity
+  pr -mts, $EFSEC2PORTSCANPATH/extract_ip $EFSEC2PORTSCANPATH/extract_asn | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
   clock5=$(date +%s)
 
   durationportscanannotate=$(expr $clock2 - $clock1)
@@ -223,8 +228,8 @@ njobs=(100 200 400 600 800)
 #njobs=(20)
 
 #cleanup
-#runlocalportscananalysis
-echo Test Chunk file
+runlocalportscananalysis
+#echo Test Chunk file
 #testckfile
 
 echo Run serverless Port scan analysis with a range of #njobs
@@ -232,8 +237,8 @@ for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  cleanup
-  runlambdaportscananalysisstateful $ijob
+  #cleanup
+  #runlambdaportscananalysisstateful $ijob
   #runportscananalysis $ijob > runportscananalysis.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
