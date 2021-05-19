@@ -16,13 +16,10 @@ cleanup()
  echo cleanup
  rm -rf $EFSEC2PORTSCANPATH/annotated 
  #rm -rf $EFSEC2PORTSCANPATH/ckdir 
- rm -rf $EFSEC2PORTCANPATH/annotateddir 
+ rm -rf $EFSEC2PORTSCANPATH/annotateddir 
  rm -rf $EFSEC2PORTSCANPATH/ipdir 
  rm -rf $EFSEC2PORTSCANPATH/asndir 
  rm -rf $EFSEC2PORTSCANPATH/as_popularity
- #rm -rf annotated
- #rm -rf ckannotated*
- #rm -f filefiter*
 }
 
 testckfile()
@@ -90,19 +87,19 @@ processaspopularity()
   mv as_popularity $EFSEC2PORTSCANPATH
 }
 
-runlambdaportscananalysis()
+runlambdaportscananalysistateful()
 {
-  echo Run Port scan analysis
+  echo Run Port scan analysis - version stateful
   JOBS=$1
 
   echo STEP 1 - split input JSON file into chunks
   clock1=$(date +%s)
-  mkdir $EFSEC2PORTSCANPATH/ckdir
-  chmod 777 $EFSEC2PORTSCANPATH/ckdir
-  cd $EFSEC2PORTSCANPATH/ckdir
-  cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
+  #mkdir $EFSEC2PORTSCANPATH/ckdir
+  #chmod 777 $EFSEC2PORTSCANPATH/ckdir
+  #cd $EFSEC2PORTSCANPATH/ckdir
+  #cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
   #split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
-  cd -
+  #cd -
   clock2=$(date +%s)
   durationportscansplitjson=$(expr $clock2 - $clock1)
   echo "Port scan 1st part - split: $durationportscansplitjson s" 
@@ -129,7 +126,6 @@ runlambdaportscananalysis()
   cat $EFSEC2PORTSCANPATH/ipdir/ip_* > $EFSEC2PORTSCANPATH/ipdir/ip_aggr
   cat $EFSEC2PORTSCANPATH/asndir/asn_* > $EFSEC2PORTSCANPATH/asndir/asn_aggr
   pr -mts, $EFSEC2PORTSCANPATH/ipdir/ip_aggr $EFSEC2PORTSCANPATH/asndir/asn_aggr | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
-  #mv as_popularity $EFSEC2PORTSCANPATH
   clock6=$(date +%s)
 
   durationportscansplitjson=$(expr $clock2 - $clock1)
@@ -148,8 +144,66 @@ runlambdaportscananalysis()
 
 }
 
-#njobs=(10 20 30 40 60 80 100 200 300 400 500 600 700 800)
-njobs=(20)
+
+runlambdaportscananalysistateless()
+{
+  echo Run Port scan analysis - version stateless
+  JOBS=$1
+
+  echo STEP 1 - split input JSON file into chunks
+  clock1=$(date +%s)
+  #mkdir $EFSEC2PORTSCANPATH/ckdir
+  #chmod 777 $EFSEC2PORTSCANPATH/ckdir
+  #cd $EFSEC2PORTSCANPATH/ckdir
+  #cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
+  #split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
+  #cd -
+  clock2=$(date +%s)
+  durationportscansplitjson=$(expr $clock2 - $clock1)
+  echo "Port scan 1st part - split: $durationportscansplitjson s" 
+  echo STEP 2 - annotate each chunk with sshell
+  mkdir ${EFSEC2PORTSCANPATH}/annotateddir
+  chmod 777 ${EFSEC2PORTSCANPATH}/annotateddir
+  ls ${EFSEC2PORTSCANPATH}/ckdir > cklist.out
+  echo size of input elements: 
+  cat cklist.out | wc -l
+  cat cklist.out | parallel -j$JOBS -I,, --env sshell "sshell \" cat ${EFSLAMBDAPORTSCANPATH}/ckdir/,, | zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json > $EFSLAMBDAPORTSCANPATH/annotateddir/annotated_\${PARALLEL_SEQ} \""
+  clock3=$(date +%s)
+  echo STEP 3 - parse IP 
+  mkdir $EFSEC2PORTSCANPATH/ipdir
+  chmod 777 $EFSEC2PORTSCANPATH/ipdir
+  ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, --env sshell "sshell \" cat ${EFSLAMBDAPORTSCANPATH}/annotateddir/,, | jq \""".ip\""" > $EFSLAMBDAPORTSCANPATH/ipdir/ip_\${PARALLEL_SEQ} \"" 
+  clock4=$(date +%s)
+  echo STEP 4 - parse ASN
+  mkdir $EFSEC2PORTSCANPATH/asndir
+  chmod 777 $EFSEC2PORTSCANPATH/asndir
+  ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, --env sshell "sshell \" cat ${EFSLAMBDAPORTSCANPATH}/annotateddir/,, | jq -c \""".zannotate.routing.asn\""" > $EFSLAMBDAPORTSCANPATH/asndir/asn_\${PARALLEL_SEQ} \""  
+  clock5=$(date +%s)
+  #echo $(processaspopularity)
+  echo STEP 5 - Output popularity
+  cat $EFSEC2PORTSCANPATH/ipdir/ip_* > $EFSEC2PORTSCANPATH/ipdir/ip_aggr
+  cat $EFSEC2PORTSCANPATH/asndir/asn_* > $EFSEC2PORTSCANPATH/asndir/asn_aggr
+  pr -mts, $EFSEC2PORTSCANPATH/ipdir/ip_aggr $EFSEC2PORTSCANPATH/asndir/asn_aggr | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
+  clock6=$(date +%s)
+
+  durationportscansplitjson=$(expr $clock2 - $clock1)
+  durationportscanannotate=$(expr $clock3 - $clock2)
+  durationportscanextractip=$(expr $clock4 - $clock3)
+  durationportscanextractasn=$(expr $clock5 - $clock4)
+  durationportscanpopularity=$(expr $clock6 - $clock5)
+  durationportscanoverall=$(expr $clock6 - $clock1)
+
+  echo "Port scan overall: $durationportscanoverall s"
+  echo "Port scan 1st part - split: $durationportscansplitjson s" 
+  echo "Port scan 2nd part - annotate: $durationportscanannotate s" 
+  echo "Port scan 3rd part - extract ip: $durationportscanextractip s"
+  echo "Port scan 4th part - extract asn: $durationportscanextractasn s"
+  echo "Port scan 5th part - popularity: $durationportscanpopularity s"
+
+}
+
+njobs=(60 80 100 200 400 600 800)
+#njobs=(20)
 
 #cleanup
 #runlocalportscananalysis
