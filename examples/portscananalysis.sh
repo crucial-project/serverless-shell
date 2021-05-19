@@ -39,11 +39,27 @@ testckfile()
 
 runlocalportscananalysis()
 {
-  clock1=`date +%s`
-  head -n 100 $JSONFILE | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > annotated 
-  clock2=`date +%s`
-  durationportscanannotate=`expr $clock2 - $clock1`
-  echo "Local Port scan 1st part - annotate: $durationportscanannotate s" 
+  clock1=$(date +%s)
+  cat $JSONFILE | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > $EFSEC2PORTSCANPATH/annotated 
+  clock2=$(date +%s)
+  cat $EC2PORTSCANPATH/annotated | jq ".ip" | tr -d '"' > $EC2PORTSCANPATH/extract_ip
+  clock3=$(date +%s)
+  cat $EC2PORTSCANPATH/annotated | jq -c ".zannotate.routing.asn" > $EC2PORTSCANPATH/extract_asn
+  clock4=$(date +%s)
+  pr -mts, $EC2PORTSCANPATH/extract_ip $EC2PORTSCANPATH/extract_asn | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EC2PORTSCANPATH/as_popularity
+  clock5=$(date +%s)
+
+  durationportscanannotate=$(expr $clock2 - $clock1)
+  durationportscanextractip=$(expr $clock3 - $clock2)
+  durationportscanextractasn=$(expr $clock4 - $clock3)
+  durationportscanpopularity=$(expr $clock5 - $clock4)
+  durationportscanoverall=$(expr $clock5 - $clock4)
+
+  echo "Local / SEQ Port scan - overall: $durationportscanoverall s" 
+  echo "Local / SEQ Port scan - annotate: $durationportscanannotate s" 
+  echo "Local / SEQ Port scan - extract IP: $durationportscanextractip s" 
+  echo "Local / SEQ Port scan - extract ASN: $durationportscanextractasn s" 
+  echo "Local / SEQ Port scan - Popularity: $durationportscanpopularity s" 
 }
 
 runlastlineportscananalysis()
@@ -87,7 +103,7 @@ processaspopularity()
   mv as_popularity $EFSEC2PORTSCANPATH
 }
 
-runlambdaportscananalysistateful()
+runlambdaportscananalysisstateful()
 {
   echo Run Port scan analysis - version stateful
   JOBS=$1
@@ -125,7 +141,8 @@ runlambdaportscananalysistateful()
   echo STEP 5 - Output popularity
   cat $EFSEC2PORTSCANPATH/ipdir/ip_* > $EFSEC2PORTSCANPATH/ipdir/ip_aggr
   cat $EFSEC2PORTSCANPATH/asndir/asn_* > $EFSEC2PORTSCANPATH/asndir/asn_aggr
-  pr -mts, $EFSEC2PORTSCANPATH/ipdir/ip_aggr $EFSEC2PORTSCANPATH/asndir/asn_aggr | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
+  #pr -mts, $EFSEC2PORTSCANPATH/ipdir/ip_aggr $EFSEC2PORTSCANPATH/asndir/asn_aggr | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
+  pr -mts, $EFSEC2PORTSCANPATH/ipdir/ip_aggr $EFSEC2PORTSCANPATH/asndir/asn_aggr  > $EFSEC2PORTSCANPATH/as_popularity
   clock6=$(date +%s)
 
   durationportscansplitjson=$(expr $clock2 - $clock1)
@@ -202,7 +219,7 @@ runlambdaportscananalysistateless()
 
 }
 
-njobs=(60 80 100 200 400 600 800)
+njobs=(100 200 400 600 800)
 #njobs=(20)
 
 #cleanup
@@ -216,7 +233,7 @@ do
   echo =================================
   echo $ijob parallel jobs
   cleanup
-  runlambdaportscananalysis $ijob
+  runlambdaportscananalysisstateful $ijob
   #runportscananalysis $ijob > runportscananalysis.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
