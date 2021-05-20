@@ -36,7 +36,7 @@ testckfile()
   seq 1 1 ${JOBS} | parallel -n0 -j 1 --env sshell "sshell \" tail -n +\\\$(((PARALLEL_SEQ-1)*CHUNK)) ${FILE} | head -n ${CHUNK} \""
 }
 
-runlocalportscananalysis()
+runlocalseqportscananalysis()
 {
   echo Run Local / SEQ Port Scan analysis
   clock1=$(date +%s)
@@ -65,6 +65,66 @@ runlocalportscananalysis()
   echo "Local / SEQ Port scan - extract ASN: $durationportscanextractasn s" 
   echo "Local / SEQ Port scan - Popularity: $durationportscanpopularity s" 
 }
+
+runlocalparportscananalysis()
+{
+  echo Run local / PARALLEL Port scan analysis 
+  #JOBS=$1
+  JOBS=$(lscpu | grep "Processeur(s)" | awk '{print $2}')
+  echo Nombre de jobs: $JOBS
+
+  echo STEP 1 - split input JSON file into chunks
+  clock1=$(date +%s)
+  mkdir $EFSEC2PORTSCANPATH/ckdir
+  chmod 777 $EFSEC2PORTSCANPATH/ckdir
+  cd $EFSEC2PORTSCANPATH/ckdir
+  cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
+  #split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
+  cd -
+  clock2=$(date +%s)
+  durationportscansplitjson=$(expr $clock2 - $clock1)
+  echo "Port scan 1st part - split: $durationportscansplitjson s" 
+  echo STEP 2 - annotate each chunk with sshell
+  mkdir ${EFSEC2PORTSCANPATH}/annotateddir
+  chmod 777 ${EFSEC2PORTSCANPATH}/annotateddir
+  ls ${EFSEC2PORTSCANPATH}/ckdir > cklist.out
+  echo size of input elements: 
+  cat cklist.out | wc -l
+  cat cklist.out | parallel -j$JOBS -I,,  "cat ${EFSEC2PORTSCANPATH}/ckdir/,, | zannotate -routing -routing-mrt-file=$MRTFILEEC2 -input-file-type=json > $EFSEC2PORTSCANPATH/annotateddir/annotated_\${PARALLEL_SEQ}"
+  clock3=$(date +%s)
+  echo STEP 3 - parse IP 
+  mkdir $EFSEC2PORTSCANPATH/ipdir
+  chmod 777 $EFSEC2PORTSCANPATH/ipdir
+  ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, "cat ${EFSEC2PORTSCANPATH}/annotateddir/,, | jq \".ip\" > $EFSEC2PORTSCANPATH/ipdir/ip_\${PARALLEL_SEQ}" 
+  clock4=$(date +%s)
+  echo STEP 4 - parse ASN
+  mkdir $EFSEC2PORTSCANPATH/asndir
+  chmod 777 $EFSEC2PORTSCANPATH/asndir
+  ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, "cat ${EFSEC2PORTSCANPATH}/annotateddir/,, | jq -c \".zannotate.routing.asn\" > $EFSEC2PORTSCANPATH/asndir/asn_\${PARALLEL_SEQ} "  
+  clock5=$(date +%s)
+  #echo $(processaspopularity)
+  echo STEP 5 - Output popularity
+  cat $EFSEC2PORTSCANPATH/ipdir/ip_* > $EFSEC2PORTSCANPATH/ipdir/ip_aggr
+  cat $EFSEC2PORTSCANPATH/asndir/asn_* > $EFSEC2PORTSCANPATH/asndir/asn_aggr
+  pr -mts, $EFSEC2PORTSCANPATH/ipdir/ip_aggr $EFSEC2PORTSCANPATH/asndir/asn_aggr | awk -F',' "{ a[\$2]++; } END { for (n in a) print n \",\" a[n] } " | sort -k2 -n -t',' -r > $EFSEC2PORTSCANPATH/as_popularity
+  clock6=$(date +%s)
+
+  durationportscansplitjson=$(expr $clock2 - $clock1)
+  durationportscanannotate=$(expr $clock3 - $clock2)
+  durationportscanextractip=$(expr $clock4 - $clock3)
+  durationportscanextractasn=$(expr $clock5 - $clock4)
+  durationportscanpopularity=$(expr $clock6 - $clock5)
+  durationportscanoverall=$(expr $clock6 - $clock1)
+
+  echo "Port scan overall: $durationportscanoverall s"
+  echo "Port scan 1st part - split: $durationportscansplitjson s" 
+  echo "Port scan 2nd part - annotate: $durationportscanannotate s" 
+  echo "Port scan 3rd part - extract ip: $durationportscanextractip s"
+  echo "Port scan 4th part - extract asn: $durationportscanextractasn s"
+  echo "Port scan 5th part - popularity: $durationportscanpopularity s"
+
+}
+
 
 runlastlineportscananalysis()
 {
@@ -194,11 +254,11 @@ runlambdaportscananalysistateless()
 
 }
 
-njobs=(100 200 400 600 800)
+#njobs=(60 80 100 200 400 600 800)
 #njobs=(20)
 
-#cleanup
-runlocalportscananalysis
+cleanup
+runlocalparportscananalysis
 #echo Test Chunk file
 #testckfile
 
@@ -207,8 +267,8 @@ for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  cleanup
-  runlambdaportscananalysisstateless $ijob
+  #cleanup
+  #runlocalparportscananalysis $ijob
   #runportscananalysis $ijob > runportscananalysis.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
