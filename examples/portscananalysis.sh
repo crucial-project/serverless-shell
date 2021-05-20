@@ -9,13 +9,12 @@ MRTFILEEC2=$EFSEC2PORTSCANPATH/2019-10-12.0500.mrt
 MRTFILELAMBDA=$EFSLAMBDAPORTSCANPATH/2019-10-12.0500.mrt
 
 CHUNKS=1000
-NUMFOLDERS=40
 
 cleanup()
 {
  echo cleanup
  rm -rf $EFSEC2PORTSCANPATH/annotated 
- #rm -rf $EFSEC2PORTSCANPATH/ckdir 
+ rm -rf $EFSEC2PORTSCANPATH/ckdir 
  rm -rf $EFSEC2PORTSCANPATH/annotateddir 
  rm -rf $EFSEC2PORTSCANPATH/ipdir 
  rm -rf $EFSEC2PORTSCANPATH/asndir 
@@ -72,35 +71,6 @@ runlastlineportscananalysis()
   sshell "tail -n 1 ${JSONFILELAMBDA} | zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json "  > annotated
 }
 
-splitjsonincks()
-{
-  echo STEP 1 - split input JSON file into chunks
-  mkdir $EFSEC2PORTSCANPATH/ckdir
-  cd $EFSEC2PORTSCANPATH/ckdir
-  split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
-  #for f in ckjson*; do cat $f | parallel -l 10000 > par$f ; done
-  cd -
-}
-
-annotatejson()
-{
-  echo STEP 2 - annotate each chunk with sshell
-  mkdir ${EFSEC2PORTSCANPATH}/annotateddir
-  ls ${EFSEC2PORTSCANPATH}/ckdir | parallel -j$JOBS -I,, --env sshell "sshell \" cat ${EFSLAMBDAPORTSCANPATH}/ckdir/,, | zannotate -routing -routing-mrt-file=$MRTFILELAMBDA -input-file-type=json \" > ${EFSLAMBDAPORTSCANPATH}/annotateddir/annotated-\${PARALLEL_SEQ}"
-}
-
-extractip()
-{
-  echo STEP 3 - parse IP 
-  ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, --env sshell "sshell \" cat ,, | jq \""".ip\""" | tr -d \"""'"\""' \"" > filefilter1
-}
-
-extractasn()
-{
-  echo STEP 4 - parse ASN
-  ls $EFSEC2PORTSCANPATH/annotateddir | parallel -j$JOBS -I,, --env sshell "sshell \" cat ,, | jq -c \""".zannotate.routing.asn\""" \"" > filefilter2
-}
-
 processaspopularity()
 {
   echo STEP 5 - Output popularity
@@ -115,12 +85,12 @@ runlambdaportscananalysisstateful()
 
   echo STEP 1 - split input JSON file into chunks
   clock1=$(date +%s)
-  #mkdir $EFSEC2PORTSCANPATH/ckdir
-  #chmod 777 $EFSEC2PORTSCANPATH/ckdir
-  #cd $EFSEC2PORTSCANPATH/ckdir
-  #cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
+  mkdir $EFSEC2PORTSCANPATH/ckdir
+  chmod 777 $EFSEC2PORTSCANPATH/ckdir
+  cd $EFSEC2PORTSCANPATH/ckdir
+  cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
   #split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
-  #cd -
+  cd -
   clock2=$(date +%s)
   durationportscansplitjson=$(expr $clock2 - $clock1)
   echo "Port scan 1st part - split: $durationportscansplitjson s" 
@@ -174,12 +144,12 @@ runlambdaportscananalysistateless()
 
   echo STEP 1 - split input JSON file into chunks
   clock1=$(date +%s)
-  #mkdir $EFSEC2PORTSCANPATH/ckdir
-  #chmod 777 $EFSEC2PORTSCANPATH/ckdir
-  #cd $EFSEC2PORTSCANPATH/ckdir
-  #cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
-  #split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
-  #cd -
+  mkdir $EFSEC2PORTSCANPATH/ckdir
+  chmod 777 $EFSEC2PORTSCANPATH/ckdir
+  cd $EFSEC2PORTSCANPATH/ckdir
+  cat $JSONFILEEC2 | parallel -j200 --pipe --block 40M "cat > ${EFSEC2PORTSCANPATH}/ckdir/ckjson_{#}"
+  split --verbose -n $CHUNKS $JSONFILEEC2 ckjson
+  cd -
   clock2=$(date +%s)
   durationportscansplitjson=$(expr $clock2 - $clock1)
   echo "Port scan 1st part - split: $durationportscansplitjson s" 
@@ -237,8 +207,8 @@ for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  #cleanup
-  #runlambdaportscananalysisstateful $ijob
+  cleanup
+  runlambdaportscananalysisstateless $ijob
   #runportscananalysis $ijob > runportscananalysis.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
