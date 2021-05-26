@@ -41,10 +41,8 @@ testsync()
 
 }
 
-# curl -s ${CCBASE}/crawl-data/${CCMAIN}/wet.paths.gz | zcat | head -n ${INPUT} > ${TMP_DIR}/index
 count_ips(){
     echo count_ips before declaring barrier
-    #LAMBDA=$(($(wc -l ${TMP_DIR}/index | awk '{print $1}')+1))
     LAMBDA=$(($(echo ${NBLAMBDAS} | awk '{print $1}')+1))
     BARRIER=$(uuid)
     echo count_ips after declaring barrier
@@ -476,23 +474,15 @@ cleanup
 
 # Run thumbnails with a range of #jobs
 #njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
-#njobs=(40 60 80 100 200 300 400 500 600 700 800)
-#cksize=(10 20 40 60 80 100 200 400 600 800)
 cksize=(100 200 400 600 800)
 
-#njobs=(90 100 200 300 400 500 600 700 800)
 echo Run thumbnails with a range of #njobs
-
-#runthumbnails 10 &> thumbnails.10.out 
-#runthumbnails 10 
 
 echo Thumbnails Sync version 
 for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  #runthumbnails $ijob 
   #runthumbnails $ijob > runthumbnails.$ijob.njobs.out
   #bash examples/perfbreakdown.sh runthumbnails.$ijob.njobs.out $ijob 
   #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out

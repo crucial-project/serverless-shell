@@ -293,20 +293,7 @@ test_map()
  count_ips
 #test_map
 #domaincount_parallel_stateless
-#clock3=`date +%s`
-#touch domaincounttmpmerged.out
 #export -f domaincount_mergeall_stateless
-#echo "mergeall stateless"
 #parallel -j10 domaincount_mergeall_stateless {} {.} ::: sync*
-#clock4=`date +%s`
-#cat domaincountbreakdownmerged.out | sort -k 2 -n -r > domaincountbreakdownmergedsorted.out
-#clock5=`date +%s`
-#head -n 100 domaincountbreakdownmergedsorted.out
-#durationsync=`expr $clock4 - $clock3`
-#durationsort=`expr $clock5 - $clock4`
-#echo sync duration: $durationsync seconds
-#echo sort duration: $durationsort seconds
-
-
 #domaincount_parallel_stateful
 #buildperfbreakdownsummary "domaincountbreakdown.out"

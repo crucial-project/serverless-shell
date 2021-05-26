@@ -15,20 +15,6 @@ cleanup()
   rm -f *.out
 }
 
-testsshelltimeout()
-{
-
-echo SSHELL sleep 60 seconds
-sshell "sleep 60"
-echo SSHELL sleep 120 seconds
-sshell "sleep 120"
-echo SSHELL sleep 300 seconds
-sshell "sleep 300"
-echo SSHELL sleep 600 seconds
-sshell "sleep 600"
-
-}
-
 testparallelsshell()
 {
   echo Test Parallel Lambda
@@ -191,16 +177,13 @@ declare -a strSizeArray=("10k" "100k" "1m" "10m" "100m")
 declare -a strSizeArrayDownload=("1m" "10m" "100m")
 declare -a strSizeArrayUpload=("10k" "100k")
 
-#njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
-njobs=(20 30 40 60 80 100 200 300 400 500 600 700 800)
-#njobs=(40 60 80 400 600 800)
+njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
 #sizeinputfile=(100 200 300 400 500 600 700 800)
 
 echo LAUNCH EFS I/O 
 
 cleanup
 
-#testsshelltimeout
 #runefsiobenchdownloadref
 #runefsiobenchuploadref
 #testparallelsshell
