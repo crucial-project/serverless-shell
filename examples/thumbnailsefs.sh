@@ -3,17 +3,17 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TMP_DIR=/tmp/$(whoami)
 
-CCBASE="http://commoncrawl.s3.amazonaws.com"
-CCMAIN="CC-MAIN-2019-43" # oct. 2019
-INPUT=24000
-RANGE="-r 0-10000000"
+#CCBASE="http://commoncrawl.s3.amazonaws.com"
+#CCMAIN="CC-MAIN-2019-43" # oct. 2019
+#INPUT=24000
+#RANGE="-r 0-10000000"
 NBLAMBDAS=100
 NBRUNS=4
 
-curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
-    | zcat | head -n ${INPUT} > ${TMP_DIR}/index
-curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
-    | zcat | head -n ${INPUT} > ${TMP_DIR}/index-wat
+#curl -s ${CCBASE}/crawl-data/${CCMAIN}/warc.paths.gz \
+#    | zcat | head -n ${INPUT} > ${TMP_DIR}/index
+#curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
+#    | zcat | head -n ${INPUT} > ${TMP_DIR}/index-wat
 ### 1 - average content size (stateless)
 
 THUMBNAILSEC2PATH=/home/ec2-user/efs/thumbnails
