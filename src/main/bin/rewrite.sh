@@ -6,19 +6,48 @@ source ${DIR}/utils.sh
 OLDIFS=$IFS
 IFS="|"
 input=($@)
-if [[ ${#input[@]} -eq 1 ]];
-then
-    exit 0
-fi
+#if [[ ${#input[@]} -eq 1 ]];
+#then
+#    exit 0
+#fi
 
 # AWS EFS
 root=$(config "aws.efs.root")
 pipes=()
+patternskip1="rm_pash_fifos"
+patternskip2="mkfifo_pash_fifos()"
+patternskip3="rm -f"
+patternskip4="mkfifo"
+patternskip5="/pash/runtime/eager.sh"
 
 sshell="sshell"
-for i in ${input[@]};
+inputbash="$1"
+echo input: $inputbash
+echo =======================================
+#for i in ${input[@]};
+while read line
 do
-    cmd=$(echo $i | sed 's/"/\\"/g')
+    #matchpattern=$(echo $line | grep -q "$pattern1" || echo $line | grep -q "$pattern2" || echo $line | grep -q "$pattern3")
+    matchpattern4=$(echo $line | grep -q "$pattern4")
+    matchpattern3=$(echo $line | grep -q "$pattern3")
+    if echo "$line" | grep -q "$patternskip1" || echo "$line" | grep -q "$patternskip3" || echo "$line" | grep -q "$patternskip4" || echo $line | grep -q "$patternskip5"; then
+      	#echo HIT
+      	continue
+    fi
+    if [[ "$line" == *"fifo"* ]] ; then 
+	echo FIFO
+    fi
+
+    #echo match pattern: $matchpattern
+    #if [ -n "$matchpattern4" ]; then
+    #  echo HIT
+    #  continue
+    #fi
+    #echo ------------------
+    echo line: $line
+    #cmd=$(echo $i | sed 's/"/\\"/g')
+    cmd=$(echo $line | sed 's/"/\\"/g')
+    #echo CMD: $cmd
     if [[ $start == "1" ]];
     then
     	# AWS EFS
@@ -36,7 +65,8 @@ do
     	start="1"
     	output+=${sshell}" \""${cmd} # --async 
     fi
-done
+done < $input
+#done
 output+="\""
 for p in ${pipes[@]}
 do
@@ -44,4 +74,4 @@ do
 done
 output+="\nwait"
 IFS=$OLDIFS
-echo -e  ${output}
+#echo -e  ${output}
