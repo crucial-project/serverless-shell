@@ -19,6 +19,7 @@ patternskip2="mkfifo_pash_fifos()"
 patternskip3="rm -f"
 patternskip4="mkfifo"
 patternskip5="/pash/runtime/eager.sh"
+patternskip6="source"
 
 sshell="sshell"
 inputbash="$1"
@@ -30,7 +31,7 @@ do
     #matchpattern=$(echo $line | grep -q "$pattern1" || echo $line | grep -q "$pattern2" || echo $line | grep -q "$pattern3")
     matchpattern4=$(echo $line | grep -q "$pattern4")
     matchpattern3=$(echo $line | grep -q "$pattern3")
-    if echo "$line" | grep -q "$patternskip1" || echo "$line" | grep -q "$patternskip3" || echo "$line" | grep -q "$patternskip4" || echo $line | grep -q "$patternskip5"; then
+    if echo "$line" | grep -q "$patternskip1" || echo "$line" | grep -q "$patternskip3" || echo "$line" | grep -q "$patternskip4" || echo $line | grep -q "$patternskip5" || echo $line | grep -q "$patternskip6"; then
       	#echo HIT
       	continue
     fi
@@ -44,6 +45,8 @@ do
     #  continue
     #fi
     #echo ------------------
+    line=$(echo $line | sed 's/</< /g')
+    line=$(echo $line | sed 's/>/> /g')
     echo line: $line
     #cmd=$(echo $i | sed 's/"/\\"/g')
     cmd=$(echo $line | sed 's/"/\\"/g')
