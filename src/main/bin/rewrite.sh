@@ -11,6 +11,9 @@ input=($@)
 #    exit 0
 #fi
 
+PAR=2
+chunks=()
+
 # AWS EFS
 root=$(config "aws.efs.root")
 pipes=()
@@ -22,6 +25,8 @@ patternskip5="/pash/runtime/eager.sh"
 patternskip6="/pash/runtime/auto-split.sh"
 patternskip7="source"
 patternskip8="&"
+
+pattern1="cat"
 
 sshell="sshell"
 inputbash="$1"
@@ -43,28 +48,59 @@ do
 
     line=$(echo $line | sed 's/{//g')
     line=$(echo $line | sed 's/}//g')
+    line=$(echo $line | sed 's/&//g')
     line=$(echo $line | sed 's/</< /g')
     line=$(echo $line | sed 's/>/> /g')
 
-    #echo line: $line
+    #echo line: $line 
     dumpline=""
+    nblinesfile=""
+    cknblinesfile=""
+
+    #if echo "$line" | grep -q "$pattern1"
+    #then
+    #	for i in $(seq 0 $PAR)
+    #	do
+    #		echo seq: $i
+    #		tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+    #		dumpline="${dumpline} ${tmparrayline}"	
+    #		echo dumpline: $dumpline
+    #	done
+    #fi
+
     IFS=', ' read -r -a arrayline <<< "$line"
     for index in "${!arrayline[@]}"
     do
 	#echo elem: ${arrayline[index]}
-        if [[ "${arrayline[index]}" == *"tmp"* ]] ; then 
+        if echo ${arrayline[index]} | grep -q "$pattern1"; then
+		nblinesfile=$(cat ${arrayline[index+1]} | wc -l)
+		#echo Number of lines of input file: $nblinesfile
+		cknblinesfile=$(($nblinesfile/$PAR))
+		#remainnblines=$(($nblinesfiles - $cknblinesfile*PAR))
+		for iter in $(seq 1 $PAR)
+		do
+			echo iter: $iter
+			#uuid=$(uuidgen)
+			if [ "$iter" -eq 1 ]; then
+				tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+			else
+				tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+			fi
+		 	dumpline="${dumpline} ${tmparrayline}"	
+			echo dumpline: $dumpline
+		done
+		break
+		#echo Number of lines of each chunk: $cknblinesfile
+        elif [[ "${arrayline[index]}" == *"tmp"* ]] ; then 
 	        #echo fifo substring: ${arrayline[index]}
-		tmparrayline="/mnt/efsimttsp/uuid"
+		tmparrayline=${root}"/"$(uuid)
 		#arrayline[index]=$tmparrayline
 		#tmparrayline=${arrayline[index]}
         	dumpline="${dumpline} ${tmparrayline}"
 	else
         	dumpline="${dumpline} ${arrayline[index]}"
 	fi
-        #${tmparrayline//tmp/fs}	
-	#echo tmp: $tmparrayline
     done
-    #dumpline=$arrayline
     echo dumpline: $dumpline
     #echo After line replacement : ${line//tmp*/fs}
     #echo match pattern: $matchpattern
