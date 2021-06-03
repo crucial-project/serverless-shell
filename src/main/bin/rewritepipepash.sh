@@ -32,6 +32,30 @@ do
     	line=$(echo $line | sed 's/>/> /g')
 
 	IFS=', ' read -r -a arrayline <<< "$line"
+
+	if echo $line | grep -q "$pattern1"
+	then
+		nblinesfile=$(cat ${arrayline[index+1]} | wc -l)
+		cknblinesfile=$((nblinesfile / $PAR))
+
+		for iter in $(seq 1 $PAR) 
+		do
+			#echo iter2: $iter
+			if [ "$iter" == 1 ]; then
+				#echo head
+				tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+			else
+				#echo tail
+				tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+			fi
+			dumpline="${dumpline} ${tmparrayline}"
+			echo dumpline: $dumpline
+		done
+
+        continue
+	fi
+
+
     	for index in "${!arrayline[@]}"
     	do
 		if echo ${arrayline[index]} | grep -q "$pattern1" 
@@ -43,14 +67,14 @@ do
 			do
 				#echo iter2: $iter
 				if [ "$iter" == 1 ]; then
-					#echo head
-					tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+					echo head
+					#tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
 				else
-					#echo tail
-					tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+					echo tail
+					#tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
 				fi
 				dumpline="${dumpline} ${tmparrayline}"
-				echo dumpline: $dumpline
+				#echo dumpline: $dumpline
 			done
 		fi
 		break
