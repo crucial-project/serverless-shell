@@ -14,7 +14,9 @@ patternskip7="source"
 patternskip8="&"
 pattern1="cat"
 
+sshell="sshell"
 dumpline=""
+output=""
 nblinesfile=""
 cknblinesfile=""
 
@@ -48,44 +50,39 @@ do
 				#echo tail
 				tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
 			fi
-			dumpline="${dumpline} ${tmparrayline}"
-			echo dumpline: $dumpline
+			output="${output} ${tmparrayline}"
+			#echo dumpline: $dumpline
 		done
 
+	#output+=${sshell}" \"${output}"\"
         continue
 	fi
 
-
     	for index in "${!arrayline[@]}"
     	do
-		if echo ${arrayline[index]} | grep -q "$pattern1" 
-		then
-			nblinesfile=$(cat ${arrayline[index+1]} | wc -l)
-			cknblinesfile=$((nblinesfile / $PAR))
-
-			for iter in $(seq 1 $PAR) 
-			do
-				#echo iter2: $iter
-				if [ "$iter" == 1 ]; then
-					echo head
-					#tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
-				else
-					echo tail
-					#tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
-				fi
-				dumpline="${dumpline} ${tmparrayline}"
-				#echo dumpline: $dumpline
-			done
+		if [[ "${arrayline[index]}" == *"tmp"* ]] ; then
+	     	   #echo fifo substring: ${arrayline[index]}
+			tmparrayline=${root}"/"$(uuid)
+			#arrayline[index]=$tmparrayline
+			#tmparrayline=${arrayline[index]}
+        		output="${output} ${tmparrayline}"
+		else
+        		output="${output} ${arrayline[index]}"
 		fi
-		break
 	done
-
-
-
+        output+=" ;"
 	#for iter1 in $(seq 1 $PAR)
 	#do
 		#echo iter: $iter1
 	#done
-        echo line: $line 
+        #echo line: $line 
+	#output+=${sshell}" \"${output}"\"
+        #echo output: $output
+	output+=$dumpline
 
 done < $input
+
+
+echo OUTPUT
+echo ==================
+echo $output
