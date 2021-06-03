@@ -122,12 +122,13 @@ do
 done
 
 echo keyCmdStore: $keyCmdStore
-#keyCmdUniq=$(echo $keyCmdStore | xargs -n1 | sort -u | xargs)
-#echo keyCmdUniq: $keyCmdUniq
 echo keyCmds file:
 cat keyCmds.out
 echo keyCmds file uniq:
-cat keyCmds.out | uniq
+cat keyCmds.out | uniq > keyCmdsUniq.out
+nbstages=$(cat keyCmdsUniq.out | wc -l)
+echo Number of stages in pipeline: $nbstages
+
 
 #echo key Cmds: ${keyCmds}
 echo OUTPUT
