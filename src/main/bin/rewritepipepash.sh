@@ -15,6 +15,7 @@ patternskip8="&"
 pattern1="cat"
 
 sshell="sshell"
+flagCmd=0
 dumpline=""
 output=""
 nblinesfile=""
@@ -37,6 +38,7 @@ do
 
 	if echo $line | grep -q "$pattern1"
 	then
+		flagCmd=1
 		nblinesfile=$(cat ${arrayline[index+1]} | wc -l)
 		cknblinesfile=$((nblinesfile / $PAR))
 
@@ -60,6 +62,7 @@ do
 
     	for index in "${!arrayline[@]}"
     	do
+		flagCmd=1
 		if [[ "${arrayline[index]}" == *"tmp"* ]] ; then
 	     	   #echo fifo substring: ${arrayline[index]}
 			tmparrayline=${root}"/"$(uuid)
@@ -70,7 +73,13 @@ do
         		output="${output} ${arrayline[index]}"
 		fi
 	done
-        output+=" ;"
+
+	echo flagCmd: $flagCmd
+	if [ $flagCmd == 1 ]
+	then
+        	output+=" ;"
+	fi
+
 	#for iter1 in $(seq 1 $PAR)
 	#do
 		#echo iter: $iter1
