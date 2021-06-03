@@ -2,7 +2,8 @@
 
 PAR=2
 input=($@)
-root=$(config "aws.efs.root")
+#root=$(config "aws.efs.root")
+root="/mnt/efsimttsp"
 
 patternskip1="rm_pash_fifos"
 patternskip2="mkfifo_pash_fifos()"
@@ -12,7 +13,12 @@ patternskip5="/pash/runtime/eager.sh"
 patternskip6="/pash/runtime/auto-split.sh"
 patternskip7="source"
 patternskip8="&"
+
 pattern1="cat"
+keyCmds=()
+keyCmdStore=""
+rm -f keyCmds.out
+touch keyCmds.out
 
 sshell="sshell"
 flagCmd=0
@@ -63,6 +69,24 @@ do
     	for index in "${!arrayline[@]}"
     	do
 		flagCmd=1
+		#echo index arrayline: $index
+		if [ $index == 0 ]
+		then
+			echo index arrayline 0
+			echo arrayline: ${arrayline[index]}
+			cmd=""
+			cmd="${arrayline[index]} "
+			cmd+="${arrayline[index+1]}"
+			echo cmd: $cmd
+			echo $cmd >> keyCmds.out
+			keyCmdStore+="${arrayline[index]} "
+			keyCmdStore+="${arrayline[index+1]}"
+			keyCmdStore+=" "
+			#echo cmd: $cmd
+			#keyCmds+=($cmd)
+			#keyCmds+=("${arrayline[index]} ${arrayline[index+1]}")
+		fi
+
 		if [[ "${arrayline[index]}" == *"tmp"* ]] ; then
 	     	   #echo fifo substring: ${arrayline[index]}
 			tmparrayline=${root}"/"$(uuid)
@@ -78,6 +102,7 @@ do
 	if [ $flagCmd == 1 ]
 	then
         	output+=" ;"
+		#output+="\n"
 	fi
 
 	#for iter1 in $(seq 1 $PAR)
@@ -91,7 +116,20 @@ do
 
 done < $input
 
+for k in ${keyCmds[@]}
+do
+	echo key Cmd: ${k}
+done
 
+echo keyCmdStore: $keyCmdStore
+#keyCmdUniq=$(echo $keyCmdStore | xargs -n1 | sort -u | xargs)
+#echo keyCmdUniq: $keyCmdUniq
+echo keyCmds file:
+cat keyCmds.out
+echo keyCmds file uniq:
+cat keyCmds.out | uniq
+
+#echo key Cmds: ${keyCmds}
 echo OUTPUT
 echo ==================
 echo $output
