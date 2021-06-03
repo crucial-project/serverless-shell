@@ -75,7 +75,6 @@ do
     			dumpline="${dumpline} ${tmparrayline}"
 			echo iter tail: $iter	
     			echo dumpline: $dumpline
-
 		fi
     	done
     else

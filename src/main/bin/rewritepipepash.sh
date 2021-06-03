@@ -77,7 +77,7 @@ do
 	echo flagCmd: $flagCmd
 	if [ $flagCmd == 1 ]
 	then
-        	output+=" \n"
+        	output+=" ;"
 	fi
 
 	#for iter1 in $(seq 1 $PAR)
