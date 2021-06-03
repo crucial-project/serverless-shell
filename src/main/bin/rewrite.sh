@@ -57,16 +57,28 @@ do
     nblinesfile=""
     cknblinesfile=""
 
-    #if echo "$line" | grep -q "$pattern1"
-    #then
-    #	for i in $(seq 0 $PAR)
-    #	do
-    #		echo seq: $i
-    #		tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
-    #		dumpline="${dumpline} ${tmparrayline}"	
-    #		echo dumpline: $dumpline
-    #	done
-    #fi
+    if echo "$line" | grep -q "$pattern1"
+    then
+	nblinesfile=$(cat ${arrayline[index+1]} | wc -l)
+	#echo Number of lines of input file: $nblinesfile
+	cknblinesfile=$(($nblinesfile/$PAR))
+        echo "line got cat"
+    	for iter in $(seq 0 $PAR)
+    	do
+    		echo iter: $iter
+		if [ $iter -eq $zero ]; then
+    			tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+    			dumpline="${dumpline} ${tmparrayline}"	
+    			echo dumpline: $dumpline
+		else
+			tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+    			dumpline="${dumpline} ${tmparrayline}"
+			echo iter tail: $iter	
+    			echo dumpline: $dumpline
+
+		fi
+    	done
+    else
 
     IFS=', ' read -r -a arrayline <<< "$line"
     for index in "${!arrayline[@]}"
@@ -77,11 +89,11 @@ do
 		#echo Number of lines of input file: $nblinesfile
 		cknblinesfile=$(($nblinesfile/$PAR))
 		#remainnblines=$(($nblinesfiles - $cknblinesfile*PAR))
-		for iter in $(seq 1 $PAR)
+		for iter1 in $(seq 1 10)
 		do
-			echo iter: $iter
+			echo iter: $iter1
 			#uuid=$(uuidgen)
-			if [ "$iter" -eq 1 ]; then
+			if [ "$iter1" == 1 ]; then
 				tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
 			else
 				tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
@@ -101,6 +113,7 @@ do
         	dumpline="${dumpline} ${arrayline[index]}"
 	fi
     done
+    fi
     echo dumpline: $dumpline
     #echo After line replacement : ${line//tmp*/fs}
     #echo match pattern: $matchpattern
