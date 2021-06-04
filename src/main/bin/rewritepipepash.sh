@@ -73,7 +73,7 @@ do
 		if [ $index == 0 ]
 		then
 			echo index arrayline 0
-			echo arrayline: ${arrayline[index]}
+			echo arrayline: ${arrayline[$index]}
 			itercmd=0
 			cmd=""
 			while [[ ${arrayline[$itercmd]} != "<" && ${arrayline[$itercmd]} != *"/tmp"* ]]
@@ -161,20 +161,27 @@ echo Number of stages in pipeline: $nbstages
 for itercmd in $(seq 1 $nbstages)
 do
 	echo arrayCmds $itercmd: ${arrayCmds[$itercmd]}
-	cmd1=${arrayCmds[$itercmd]}
-	cmd2=${arrayCmds[$itercmd+1]}
-	for iterpar in $(seq 1 $PAR)
-	do
-		pipe="${root}/$(uuid)"
-		outputsend="$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
-         	#outputsend+=${sshell}	
-		outputrecv="\"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2 ;"
-		#outputrecv+=${sshell}
-		echo $outputsend
-		echo $outputrecv
-                output="${output} $outputsend"
-		output="${output} $outputrecv"
-	done
+	if [ $itercmd == $nbstages ]
+	then
+		cmd=${arrayCmds[$itercmd]}
+		output=""
+	else
+		cmd1=${arrayCmds[$itercmd]}
+		cmd2=${arrayCmds[$itercmd+1]}
+
+		for iterpar in $(seq 1 $PAR)
+		do
+			pipe="${root}/$(uuid)"
+			outputsend="$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+         		#outputsend+=${sshell}	
+			outputrecv="\"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2 ;"
+			#outputrecv+=${sshell}
+			echo $outputsend
+			echo $outputrecv
+               		output="${output} $outputsend"
+			output="${output} $outputrecv"
+		done
+	fi
 done
 
 #echo key Cmds: ${keyCmds}
