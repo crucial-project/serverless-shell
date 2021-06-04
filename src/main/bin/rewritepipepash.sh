@@ -58,7 +58,7 @@ do
 				#echo tail
 				tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
 			fi
-			output="${output} ${tmparrayline}"
+			#output="${output} ${tmparrayline}"
 			#echo dumpline: $dumpline
 		done
 
@@ -74,9 +74,16 @@ do
 		then
 			echo index arrayline 0
 			echo arrayline: ${arrayline[index]}
+			itercmd=0
 			cmd=""
-			cmd="${arrayline[index]} "
-			cmd+="${arrayline[index+1]}"
+			while [[ ${arrayline[$itercmd]} != "<" && ${arrayline[$itercmd]} != *"/tmp"* ]]
+			do
+				cmd="$cmd ${arrayline[$itercmd]}"
+				itercmd=$((itercmd+1))
+				echo itercmd: $itercmd
+			done
+			#cmd="${arrayline[index]} "
+			#cmd+="${arrayline[index+1]}"
 			echo cmd: $cmd
 			echo $cmd >> keyCmds.out
 			keyCmdStore+="${arrayline[index]} "
@@ -92,9 +99,9 @@ do
 			tmparrayline=${root}"/"$(uuid)
 			#arrayline[index]=$tmparrayline
 			#tmparrayline=${arrayline[index]}
-        		output="${output} ${tmparrayline}"
-		else
-        		output="${output} ${arrayline[index]}"
+        		#output="${output} ${tmparrayline}"
+		#else
+        		#output="${output} ${arrayline[index]}"
 		fi
 	done
 
@@ -102,7 +109,7 @@ do
 	if [ $flagCmd == 1 ]
 	then
         	output+=" ;"
-		#output+="\n"
+		output+="\n"
 	fi
 
 	#for iter1 in $(seq 1 $PAR)
@@ -126,11 +133,51 @@ echo keyCmds file:
 cat keyCmds.out
 echo keyCmds file uniq:
 cat keyCmds.out | uniq > keyCmdsUniq.out
+echo keyCmdsUniq.out : 
+cat keyCmdsUniq.out
+itercmd=0
+inputCmds=keyCmdsUniq.out
+arrayCmds=""
+
+while read -r linecmd
+do
+	itercmd=$((itercmd+1))
+	echo iter key: $itercmd
+	echo lineKey: $linecmd
+
+	arrayCmds[$itercmd]=$linecmd
+	#keyCmds[$iterKeys]=$linekey						
+done < keyCmdsUniq.out
+
+#echo keyCmds:
+#for k in ${keyCmds[@]}
+#do
+#	echo key Cmd: ${k}
+#done
+
 nbstages=$(cat keyCmdsUniq.out | wc -l)
 echo Number of stages in pipeline: $nbstages
 
+for itercmd in $(seq 1 $nbstages)
+do
+	echo arrayCmds $itercmd: ${arrayCmds[$itercmd]}
+	cmd1=${arrayCmds[$itercmd]}
+	cmd2=${arrayCmds[$itercmd+1]}
+	for iterpar in $(seq 1 $PAR)
+	do
+		pipe="${root}/$(uuid)"
+		outputsend="$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+         	#outputsend+=${sshell}	
+		outputrecv="\"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2 ;"
+		#outputrecv+=${sshell}
+		echo $outputsend
+		echo $outputrecv
+                output="${output} $outputsend"
+		output="${output} $outputrecv"
+	done
+done
 
 #echo key Cmds: ${keyCmds}
 echo OUTPUT
 echo ==================
-echo $output
+#echo $output
