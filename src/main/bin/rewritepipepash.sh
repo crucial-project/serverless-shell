@@ -6,6 +6,7 @@ input=($@)
 #root=$(config "aws.efs.root")
 root="/mnt/efsimttsp"
 arrayPipes=""
+arrayPipesNext=""
 
 output="#!/usr/bin/env bash"
 NEWLINE='\n'
@@ -161,41 +162,15 @@ do
                 output="${output} ${sshell} \"sort -m ${fileparoutput} > ${root}/res.out\""
 		output="${output} ${NEWLINE}"
 
-	elif [ $itercmd == $nbstagesmone ] 
-	then
-		for iterpar in $(seq 1 $PAR)
-		do
-			#arrayPipes[$iterpar]="${root}/$(uuid)"
-			cmd=${arrayCmds[$itercmd]}
-			output="${output} ${sshell} \"$cmd | ${sendcmd} > "${arrayPipes[$iterpar]}"\"" 
-			output="${output} ${NEWLINE}"
-		done
-
-		output="${output} ${NEWLINE}"
-		output="${output} ${NEWLINE}"
-
-	elif [$itercmd == 1 ]
-	then
-		for iterpar in $(seq 1 $PAR)
-		do
-			output="${output} ${sshell} \"${recvcmd1} ${arrayPipes[$iterpar]} ${} \""
-		done
 	else
-		cmd1=${arrayCmds[$itercmd]}
-		cmd2=${arrayCmds[$itercmd+1]}
+		cmd=${arrayCmds[$itercmd]}
 
 		for iterpar in $(seq 1 $PAR)
 		do
-			#arrayPipes[$iterpar]="${root}/$(uuid)"
-			outputsend="${sshell} \" $cmd1 | ${sendcmd} > "${arrayPipes[$iterpar]}"\"" 
-			outputrecv="${sshell} \" ${recvcmd1} "${arrayPipes[$iterpar]}" ${recvcmd2} | $cmd1 \""
-			#outputrecv+=${sshell}
-			#echo $outputsend
-			#echo $outputrecv
-               		output="${output} $outputsend"
+			arrayPipesNext[$iterpar]="${root}/$(uuid)"
+			output="${output} ${sshell} \" ${recvcmd1} ${arrayPipes[$iterpar]} ${recvcmd2} | ${cmd} > ${arrayPipesNext[$iterpar]} \""
 			output="${output} ${NEWLINE}"
-			output="${output} $outputrecv"
-			output="${output} ${NEWLINE}"
+			arrayPipes[$iterpar]=${arrayPipesNext[$iterpar]}
 
 		done
 		output="${output} ${NEWLINE}"
