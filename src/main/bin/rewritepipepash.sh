@@ -204,4 +204,4 @@ done
 
 echo OUTPUT
 echo ==================
-echo -e $output > pipessshellefs_$PAR.sh 
+echo -e $output > pipessshellefs_${PAR}_chunks.sh 
