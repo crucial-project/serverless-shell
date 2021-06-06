@@ -25,6 +25,7 @@ patternskip8="&"
 patternskip9=";"
 
 pattern1="cat"
+pattern2="head"
 
 sendcmd="awk '{print \\\$0}END{print \\\"EOF\\\"}'"
 recvcmd1="tail -n +0 --pid=\\$\\$ -f --retry"
@@ -60,6 +61,7 @@ do
 	then
 		flagCmd=1
 		nblinesfile=$(cat ${arrayline[1]} | wc -l)
+		echo $nblinesfile
 		cknblinesfile=$((nblinesfile / $PAR))
 		
 		for iterpar in $(seq 1 $PAR) 
@@ -78,8 +80,30 @@ do
 				output="${output} ${NEWLINE}"
 			fi
 		done
+        	continue
 
-        continue
+	elif echo $line | grep -q "$pattern2"
+	then
+		nblinesfile=${arrayline[2]}
+		cknblinesfile=$((nblinesfile / $PAR))
+
+		for iterpar in $(seq 1 $PAR) 
+		do
+			arrayPipes[$iterpar]="${root}/$(uuid)"
+			#echo iter2: $iter
+			if [ "$iterpar" == 1 ] 
+			then
+				#echo head
+				output="${output} ${sshell} \"head -n $cknblinesfile ${arrayline[3]} > ${arrayPipes[$iterpar]} \""
+				output="${output} ${NEWLINE}"
+			else
+				offset=$(($iterpar * $cknblinesfile))
+				#echo tail
+				output="${output} ${sshell} \"head -n $offset ${arrayline[3]} | tail -n +${cknblinesfile} > ${arrayPipes[$iterpar]} \"" 
+				output="${output} ${NEWLINE}"
+			fi
+		done
+		continue
 	fi
 
     	for index in "${!arrayline[@]}"
@@ -178,7 +202,6 @@ do
 	fi
 done
 
-#echo key Cmds: ${keyCmds}
 echo OUTPUT
 echo ==================
-echo -e $output
+echo -e $output > pipessshellefs_$PAR.sh 
