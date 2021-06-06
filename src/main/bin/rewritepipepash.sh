@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PAR=4
+PAR=8
 input=($@)
 #root=$(config "aws.efs.root")
 root="/mnt/efsimttsp"
@@ -180,12 +180,12 @@ do
 		for iterpar in $(seq 1 $PAR)
 		do
 			cmd=${arrayCmds[$itercmd]}
-			output=" ${output} \"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ > par_$iterpar.out"
+			output="${output} ${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ > ${root}/par_$iterpar.out\""
 			output="${output} ${NEWLINE}"
-			fileparoutput+=" par_$iterpar.out"
+			fileparoutput+=" ${root}/par_$iterpar.out"
 		done
 
-                output="${output} sort -m ${fileparoutput} > res.out"
+                output="${output} ${sshell} \"sort -m ${fileparoutput} > ${root}/res.out\""
 		output="${output} ${NEWLINE}"
 
 	elif [ $itercmd == $nbstagesmone ] 
@@ -193,7 +193,7 @@ do
 		for iterpar in $(seq 1 $PAR)
 		do
 			cmd=${arrayCmds[$itercmd]}
-			output="${output} $cmd | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+			output="${output} ${sshell} \"$cmd | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
 			output="${output} ${NEWLINE}"
 		done
 	else
@@ -203,13 +203,14 @@ do
 		for iterpar in $(seq 1 $PAR)
 		do
 			pipe="${root}/$(uuid)"
-			outputsend="$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+			outputsend="${sshell} \"$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
          		#outputsend+=${sshell}	
-			outputrecv="\"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2"
+			outputrecv="${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2"
 			#outputrecv+=${sshell}
 			#echo $outputsend
 			#echo $outputrecv
                		output="${output} $outputsend"
+			output="${output} ${NEWLINE}"
 			output="${output} $outputrecv"
 			output="${output} ${NEWLINE}"
 
