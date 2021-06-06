@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 PAR=8
+
 input=($@)
 #root=$(config "aws.efs.root")
 root="/mnt/efsimttsp"
@@ -24,9 +25,9 @@ patternskip9=";"
 
 pattern1="cat"
 
-sendcmd="| awk '{print \\\$0}END{print \\\"EOF\\\"}' > "
-recvcmd1="\"tail -n +0 --pid=\\$\\$ -f --retry"
-recvcmd2="2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ |"
+sendcmd="awk '{print \\\$0}END{print \\\"EOF\\\"}'"
+recvcmd1="tail -n +0 --pid=\\$\\$ -f --retry"
+recvcmd2="2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$"
 
 keyCmds=()
 keyCmdStore=""
@@ -42,7 +43,6 @@ cknblinesfile=""
 while read line
 do
         if echo "$line" | grep -q "$patternskip1" || echo "$line" | grep -q "$patternskip3" || echo "$line" | grep -q "$patternskip4" || echo $line | grep -q "$patternskip5" || echo $line | grep -q "$patternskip6" || echo $line | grep -q "$patternskip7" || echo $line | grep -q "$patternskip9"; then
-      	#echo HIT
       		continue
         fi	
 
@@ -58,24 +58,26 @@ do
 	if echo $line | grep -q "$pattern1"
 	then
 		flagCmd=1
-		nblinesfile=$(cat ${arrayline[index+1]} | wc -l)
+		nblinesfile=$(cat ${arrayline[1]} | wc -l)
 		cknblinesfile=$((nblinesfile / $PAR))
-
-		for iter in $(seq 1 $PAR) 
+		
+		for iterpar in $(seq 1 $PAR) 
 		do
+			arrayPipes[$iterpar]="${root}/$(uuid)"
 			#echo iter2: $iter
-			if [ "$iter" == 1 ]; then
+			if [ "$iterpar" == 1 ] 
+			then
 				#echo head
-				tmparrayline="head -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+				output="${output} ${sshell} \"head -n $cknblinesfile ${arrayline[1]} > ${arrayPipes[$iterpar]} \""
+				output="${output} ${NEWLINE}"
 			else
+				offset=$(($iterpar * $cknblinesfile))
 				#echo tail
-				tmparrayline="tail -n $cknblinesfile ${arrayline[index+1]} > ${root}/$(uuid) ;" 
+				output="${output} ${sshell} \"head -n $offset ${arrayline[1]} | tail -n +${cknblinesfile} > ${arrayPipes[$iterpar]} \"" 
+				output="${output} ${NEWLINE}"
 			fi
-			#output="${output} ${tmparrayline}"
-			#echo dumpline: $dumpline
 		done
 
-	#output+=${sshell}" \"${output}"\"
         continue
 	fi
 
@@ -95,44 +97,14 @@ do
 				itercmd=$((itercmd+1))
 				echo itercmd: $itercmd
 			done
-			#cmd="${arrayline[index]} "
-			#cmd+="${arrayline[index+1]}"
 			echo cmd: $cmd
 			echo $cmd >> keyCmds.out
 			keyCmdStore+="${arrayline[index]} "
 			keyCmdStore+="${arrayline[index+1]}"
 			keyCmdStore+=" "
-			#echo cmd: $cmd
-			#keyCmds+=($cmd)
-			#keyCmds+=("${arrayline[index]} ${arrayline[index+1]}")
 		fi
 
-		if [[ "${arrayline[index]}" == *"tmp"* ]] ; then
-	     	   #echo fifo substring: ${arrayline[index]}
-			tmparrayline=${root}"/"$(uuid)
-			#arrayline[index]=$tmparrayline
-			#tmparrayline=${arrayline[index]}
-        		#output="${output} ${tmparrayline}"
-		#else
-        		#output="${output} ${arrayline[index]}"
-		fi
 	done
-
-	#echo flagCmd: $flagCmd
-	#if [ $flagCmd == 1 ]
-	#then
-        	#output+=" ;"
-		#output+="\n"
-	#fi
-
-	#for iter1 in $(seq 1 $PAR)
-	#do
-		#echo iter: $iter1
-	#done
-        #echo line: $line 
-	#output+=${sshell}" \"${output}"\"
-        #echo output: $output
-	output+=$dumpline
 
 done < $input
 
@@ -141,7 +113,6 @@ do
 	echo key Cmd: ${k}
 done
 
-echo keyCmdStore: $keyCmdStore
 echo keyCmds file:
 cat keyCmds.out
 echo keyCmds file uniq:
@@ -162,15 +133,11 @@ do
 	#keyCmds[$iterKeys]=$linekey						
 done < keyCmdsUniq.out
 
-#echo keyCmds:
-#for k in ${keyCmds[@]}
-#do
-#	echo key Cmd: ${k}
-#done
-
 nbstages=$(cat keyCmdsUniq.out | wc -l)
 nbstagesmone=$((nbstages - 1))
 echo Number of stages in pipeline: $nbstages
+
+output="${output} ${NEWLINE}"
 
 for itercmd in $(seq 1 $nbstages)
 do
@@ -178,14 +145,19 @@ do
 	if [ $itercmd == $nbstages ]
 	then	
 		fileparoutput=""
+		output="${output} ${NEWLINE}"
+		output="${output} ${NEWLINE}"
+
 		for iterpar in $(seq 1 $PAR)
 		do
 			cmd=${arrayCmds[$itercmd]}
-			output="${output} ${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${arrayPipes[$iterpar]}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ > ${root}/par_$iterpar.out\""
+			output="${output} ${sshell} \"${recvcmd1} "${arrayPipes[$iterpar]}" ${recvcmd2} > ${root}/par_$iterpar.out\""
 			output="${output} ${NEWLINE}"
 			fileparoutput+=" ${root}/par_$iterpar.out"
 		done
 
+		output="${output} ${NEWLINE}"
+		output="${output} ${NEWLINE}"
                 output="${output} ${sshell} \"sort -m ${fileparoutput} > ${root}/res.out\""
 		output="${output} ${NEWLINE}"
 
@@ -193,10 +165,20 @@ do
 	then
 		for iterpar in $(seq 1 $PAR)
 		do
-			arrayPipes[$iterpar]="${root}/$(uuid)"
+			#arrayPipes[$iterpar]="${root}/$(uuid)"
 			cmd=${arrayCmds[$itercmd]}
-			output="${output} ${sshell} \"$cmd | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${arrayPipes[$iterpar]}"\"" 
+			output="${output} ${sshell} \"$cmd | ${sendcmd} > "${arrayPipes[$iterpar]}"\"" 
 			output="${output} ${NEWLINE}"
+		done
+
+		output="${output} ${NEWLINE}"
+		output="${output} ${NEWLINE}"
+
+	elif [$itercmd == 1 ]
+	then
+		for iterpar in $(seq 1 $PAR)
+		do
+			output="${output} ${sshell} \"${recvcmd1} ${arrayPipes[$iterpar]} ${} \""
 		done
 	else
 		cmd1=${arrayCmds[$itercmd]}
@@ -204,10 +186,9 @@ do
 
 		for iterpar in $(seq 1 $PAR)
 		do
-			arrayPipes[$iterpar]="${root}/$(uuid)"
-			outputsend="${sshell} \"$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${arrayPipes[$iterpar]}"\"" 
-         		#outputsend+=${sshell}	
-			outputrecv="${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${arrayPipes[$iterpar]}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2"
+			#arrayPipes[$iterpar]="${root}/$(uuid)"
+			outputsend="${sshell} \" $cmd1 | ${sendcmd} > "${arrayPipes[$iterpar]}"\"" 
+			outputrecv="${sshell} \" ${recvcmd1} "${arrayPipes[$iterpar]}" ${recvcmd2} | $cmd1 \""
 			#outputrecv+=${sshell}
 			#echo $outputsend
 			#echo $outputrecv
@@ -217,6 +198,8 @@ do
 			output="${output} ${NEWLINE}"
 
 		done
+		output="${output} ${NEWLINE}"
+		output="${output} ${NEWLINE}"
 	fi
 done
 
