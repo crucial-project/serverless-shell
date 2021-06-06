@@ -4,6 +4,7 @@ PAR=8
 input=($@)
 #root=$(config "aws.efs.root")
 root="/mnt/efsimttsp"
+arrayPipes=""
 
 output="#!/usr/bin/env bash"
 NEWLINE='\n'
@@ -180,7 +181,7 @@ do
 		for iterpar in $(seq 1 $PAR)
 		do
 			cmd=${arrayCmds[$itercmd]}
-			output="${output} ${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ > ${root}/par_$iterpar.out\""
+			output="${output} ${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${arrayPipes[$iterpar]}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ > ${root}/par_$iterpar.out\""
 			output="${output} ${NEWLINE}"
 			fileparoutput+=" ${root}/par_$iterpar.out"
 		done
@@ -192,8 +193,9 @@ do
 	then
 		for iterpar in $(seq 1 $PAR)
 		do
+			arrayPipes[$iterpar]="${root}/$(uuid)"
 			cmd=${arrayCmds[$itercmd]}
-			output="${output} ${sshell} \"$cmd | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+			output="${output} ${sshell} \"$cmd | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${arrayPipes[$iterpar]}"\"" 
 			output="${output} ${NEWLINE}"
 		done
 	else
@@ -202,10 +204,10 @@ do
 
 		for iterpar in $(seq 1 $PAR)
 		do
-			pipe="${root}/$(uuid)"
-			outputsend="${sshell} \"$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+			arrayPipes[$iterpar]="${root}/$(uuid)"
+			outputsend="${sshell} \"$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${arrayPipes[$iterpar]}"\"" 
          		#outputsend+=${sshell}	
-			outputrecv="${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2"
+			outputrecv="${sshell} \"tail -n +0 --pid=\\$\\$ -f --retry "${arrayPipes[$iterpar]}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2"
 			#outputrecv+=${sshell}
 			#echo $outputsend
 			#echo $outputrecv
