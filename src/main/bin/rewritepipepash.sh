@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
-PAR=2
+PAR=4
 input=($@)
 #root=$(config "aws.efs.root")
 root="/mnt/efsimttsp"
+
+output="#!/usr/bin/env bash"
+NEWLINE='\n'
+output="${output} ${NEWLINE}"
+output="${output} ${NEWLINE}"
+output="${output} ${NEWLINE}"
 
 patternskip1="rm_pash_fifos"
 patternskip2="mkfifo_pash_fifos()"
@@ -13,8 +19,14 @@ patternskip5="/pash/runtime/eager.sh"
 patternskip6="/pash/runtime/auto-split.sh"
 patternskip7="source"
 patternskip8="&"
+patternskip9=";"
 
 pattern1="cat"
+
+sendcmd="| awk '{print \\\$0}END{print \\\"EOF\\\"}' > "
+recvcmd1="\"tail -n +0 --pid=\\$\\$ -f --retry"
+recvcmd2="2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ |"
+
 keyCmds=()
 keyCmdStore=""
 rm -f keyCmds.out
@@ -23,20 +35,20 @@ touch keyCmds.out
 sshell="sshell"
 flagCmd=0
 dumpline=""
-output=""
 nblinesfile=""
 cknblinesfile=""
 
 while read line
 do
-        if echo "$line" | grep -q "$patternskip1" || echo "$line" | grep -q "$patternskip3" || echo "$line" | grep -q "$patternskip4" || echo $line | grep -q "$patternskip5" || echo $line | grep -q "$patternskip6" || echo $line | grep -q "$patternskip7"; then
+        if echo "$line" | grep -q "$patternskip1" || echo "$line" | grep -q "$patternskip3" || echo "$line" | grep -q "$patternskip4" || echo $line | grep -q "$patternskip5" || echo $line | grep -q "$patternskip6" || echo $line | grep -q "$patternskip7" || echo $line | grep -q "$patternskip9"; then
       	#echo HIT
       		continue
         fi	
 
 	line=$(echo $line | sed 's/{//g')
     	line=$(echo $line | sed 's/}//g')
-    	line=$(echo $line | sed 's/&//g')
+    	#line=$(echo $line | sed 's/&//g')
+    	line=$(echo $line | sed 's/;//g')
     	line=$(echo $line | sed 's/</< /g')
     	line=$(echo $line | sed 's/>/> /g')
 
@@ -105,12 +117,12 @@ do
 		fi
 	done
 
-	echo flagCmd: $flagCmd
-	if [ $flagCmd == 1 ]
-	then
-        	output+=" ;"
-		output+="\n"
-	fi
+	#echo flagCmd: $flagCmd
+	#if [ $flagCmd == 1 ]
+	#then
+        	#output+=" ;"
+		#output+="\n"
+	#fi
 
 	#for iter1 in $(seq 1 $PAR)
 	#do
@@ -156,15 +168,34 @@ done < keyCmdsUniq.out
 #done
 
 nbstages=$(cat keyCmdsUniq.out | wc -l)
+nbstagesmone=$((nbstages - 1))
 echo Number of stages in pipeline: $nbstages
 
 for itercmd in $(seq 1 $nbstages)
 do
 	echo arrayCmds $itercmd: ${arrayCmds[$itercmd]}
 	if [ $itercmd == $nbstages ]
+	then	
+		fileparoutput=""
+		for iterpar in $(seq 1 $PAR)
+		do
+			cmd=${arrayCmds[$itercmd]}
+			output=" ${output} \"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ > par_$iterpar.out"
+			output="${output} ${NEWLINE}"
+			fileparoutput+=" par_$iterpar.out"
+		done
+
+                output="${output} sort -m ${fileparoutput} > res.out"
+		output="${output} ${NEWLINE}"
+
+	elif [ $itercmd == $nbstagesmone ] 
 	then
-		cmd=${arrayCmds[$itercmd]}
-		output=""
+		for iterpar in $(seq 1 $PAR)
+		do
+			cmd=${arrayCmds[$itercmd]}
+			output="${output} $cmd | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
+			output="${output} ${NEWLINE}"
+		done
 	else
 		cmd1=${arrayCmds[$itercmd]}
 		cmd2=${arrayCmds[$itercmd+1]}
@@ -174,12 +205,14 @@ do
 			pipe="${root}/$(uuid)"
 			outputsend="$cmd1 | awk '{print \\\$0}END{print \\\"EOF\\\"}' > "${pipe}"\"" 
          		#outputsend+=${sshell}	
-			outputrecv="\"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2 ;"
+			outputrecv="\"tail -n +0 --pid=\\$\\$ -f --retry "${pipe}" 2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$ | $cmd2"
 			#outputrecv+=${sshell}
-			echo $outputsend
-			echo $outputrecv
+			#echo $outputsend
+			#echo $outputrecv
                		output="${output} $outputsend"
 			output="${output} $outputrecv"
+			output="${output} ${NEWLINE}"
+
 		done
 	fi
 done
@@ -187,4 +220,4 @@ done
 #echo key Cmds: ${keyCmds}
 echo OUTPUT
 echo ==================
-#echo $output
+echo -e $output
