@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PAR=8
+PAR=2
 
 input=($@)
 #root=$(config "aws.efs.root")
@@ -28,8 +28,10 @@ pattern1="cat"
 pattern2="head"
 
 sendcmd="awk '{print \\\$0}END{print \\\"EOF\\\"}'"
-recvcmd1="tail -n +0 --pid=\\$\\$ -f --retry"
-recvcmd2="2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$"
+#recvcmd="tail -n +0 --pid=\\$\\$ -f --retry"
+recvcmd="cat"
+#recvcmd2="2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$"
+#recvcmd2="2>/dev/null | { sed \\\"/EOF/ q\\\" && kill \\$\\$ ;} | grep -v ^EOF\\$"
 
 keyCmds=()
 keyCmdStore=""
@@ -71,12 +73,12 @@ do
 			if [ "$iterpar" == 1 ] 
 			then
 				#echo head
-				output="${output} ${sshell} \"head -n $cknblinesfile ${arrayline[1]} > ${arrayPipes[$iterpar]} \""
+				output="${output} ${sshell} \"head -n $cknblinesfile ${root}${arrayline[1]} > ${arrayPipes[$iterpar]} \""
 				output="${output} ${NEWLINE}"
 			else
 				offset=$(($iterpar * $cknblinesfile))
 				#echo tail
-				output="${output} ${sshell} \"head -n $offset ${arrayline[1]} | tail -n +${cknblinesfile} > ${arrayPipes[$iterpar]} \"" 
+				output="${output} ${sshell} \"head -n $offset ${root}${arrayline[1]} | tail -n +${cknblinesfile} > ${arrayPipes[$iterpar]} \"" 
 				output="${output} ${NEWLINE}"
 			fi
 		done
@@ -94,12 +96,12 @@ do
 			if [ "$iterpar" == 1 ] 
 			then
 				#echo head
-				output="${output} ${sshell} \"head -n $cknblinesfile ${arrayline[3]} > ${arrayPipes[$iterpar]} \""
+				output="${output} ${sshell} \"head -n $cknblinesfile ${root}/${arrayline[3]} > ${arrayPipes[$iterpar]} \""
 				output="${output} ${NEWLINE}"
 			else
 				offset=$(($iterpar * $cknblinesfile))
 				#echo tail
-				output="${output} ${sshell} \"head -n $offset ${arrayline[3]} | tail -n +${cknblinesfile} > ${arrayPipes[$iterpar]} \"" 
+				output="${output} ${sshell} \"head -n $offset ${root}/${arrayline[3]} | tail -n +${cknblinesfile} > ${arrayPipes[$iterpar]} \"" 
 				output="${output} ${NEWLINE}"
 			fi
 		done
@@ -151,7 +153,9 @@ arrayCmds=""
 while read -r linecmd
 do
 	itercmd=$((itercmd+1))
+	linecmd=$(echo $linecmd | sed "s/\"/'/g")
 	echo iter key: $itercmd
+
 	echo lineKey: $linecmd
 
 	arrayCmds[$itercmd]=$linecmd
@@ -176,7 +180,7 @@ do
 		for iterpar in $(seq 1 $PAR)
 		do
 			cmd=${arrayCmds[$itercmd]}
-			output="${output} ${sshell} \"${recvcmd1} "${arrayPipes[$iterpar]}" ${recvcmd2} > ${root}/par_$iterpar.out\""
+			output="${output} ${sshell} \"${recvcmd} "${arrayPipes[$iterpar]}" > ${root}/par_$iterpar.out\""
 			output="${output} ${NEWLINE}"
 			fileparoutput+=" ${root}/par_$iterpar.out"
 		done
@@ -192,7 +196,7 @@ do
 		for iterpar in $(seq 1 $PAR)
 		do
 			arrayPipesNext[$iterpar]="${root}/$(uuid)"
-			output="${output} ${sshell} \" ${recvcmd1} ${arrayPipes[$iterpar]} ${recvcmd2} | ${cmd} > ${arrayPipesNext[$iterpar]} \""
+			output="${output} ${sshell} \" ${recvcmd} ${arrayPipes[$iterpar]} | ${cmd} > ${arrayPipesNext[$iterpar]} \""
 			output="${output} ${NEWLINE}"
 			arrayPipes[$iterpar]=${arrayPipesNext[$iterpar]}
 
