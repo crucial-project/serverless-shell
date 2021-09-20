@@ -141,17 +141,23 @@ buildperfbreakdownparallelnoopsummary() {
 
 buildperfbreakdownthumbnailsnoopsummary() {
 
- durationnanodownloadacc=0
- durationnanoconvertacc=0
- durationnanouploadacc=0
+ durationnanosleepacc=0
+ durationnanoinvokesshellacc=0
+ durationinvokesshellagg=0
+ durationinvokegnuparallelagg=0
+ durationsleepagg=0
 
- cat $1 | grep durationsleep > durationsleep.out
- cat $1 | grep durationinvokesshell > durationinvokesshell.out
- cat $1 | grep durationoverall > durationoverall.out
+ if [ $# -eq 4 ]
+ then
 
  echo 1st arg: $1
  echo 2nd arg: $2
  echo 3rd arg: $3
+ echo 4th arg: $4
+
+ cat $1 | grep durationsleep > durationsleep.out
+ cat $1 | grep durationinvokesshell > durationinvokesshell.out
+ cat $1 | grep durationoverall > durationoverall.out
 
  # Read Sleep file 
  while read l; do
@@ -172,33 +178,73 @@ buildperfbreakdownthumbnailsnoopsummary() {
    durationoverall=$measure
  done < durationoverall.out
 
- echo "duration Invoke sshell: $durationnanoinvokesshellacc nanoseconds"
- echo "duration Sleep: $durationnanosleepacc nanoseconds"
+  echo "duration Invoke sshell: $durationnanoinvokesshellacc nanoseconds"
+  echo "duration Sleep: $durationnanosleepacc nanoseconds"
 
- durationinvokesshellaccsecs=$((durationnanoinvokesshellacc / 1000000000))
- durationinvokesshellaccmsecs=$((durationnanoinvokesshellacc / 1000000))
- durationsleepaccsecs=$((durationnanosleepacc / 1000000000))
+  durationinvokesshellaccsecs=$((durationnanoinvokesshellacc / 1000000000))
+  durationinvokesshellaccmsecs=$((durationnanoinvokesshellacc / 1000000))
+  durationsleepaccsecs=$((durationnanosleepacc / 1000000000))
 
- echo "Aggregated duration Invoke sshell: $durationinvokesshellaccmsecs ms"
- echo "Aggregated duration sleep: $durationsleepaccsecs s"
+  #echo "Aggregated duration Invoke sshell: $durationinvokesshellaccmsecs ms"
+  #echo "Aggregated duration sleep: $durationsleepaccsecs s"
 
- durationinvokesshellsecs=$((durationinvokesshellaccsecs / $2))
- durationinvokesshellmsecs=$((durationinvokesshellaccmsecs / $2))
- durationsleepsecs=$((durationsleepaccsecs / $2))
- durationinvokesshellavgsecs=$((durationinvokesshellsecs / $3))
- durationinvokesshellavgmsecs=$((durationinvokesshellmsecs / $3))
- durationsleepavgsecs=$((durationsleepsecs / $3))
+  durationinvokesshellsecs=$((durationinvokesshellaccsecs / $2))
+  durationinvokesshellmsecs=$((durationinvokesshellaccmsecs / $2))
+  durationsleepsecs=$((durationsleepaccsecs / $2))
+
+  durationinvokegnuparallelsecs=$(($durationoverall-$durationsleepsecs-$durationinvokesshellsecs))
+
+  echo "durationinvokesshellmsecsagg: $durationinvokesshellmsecs"
+  echo "durationinvokesshellsecsagg: $durationinvokesshellsecs"
+  echo "durationsleepagg: $durationsleepsecs"
+  echo "durationinvokegnuparallelagg: $durationinvokegnuparallelsecs"
+
+ elif [$# -eq 3]
+ then
+
+ echo 1st arg: $1
+ echo 2nd arg: $2
+ echo 3rd arg: $3
+
+ cat $1 | grep durationinvokesshellagg > durationinvokesshellagg.out
+ cat $1 | grep durationsleepagg > durationsleepagg.out
+ cat $1 | grep durationinvokegnuparallelagg > durationinvokegnuparallelagg.out
+
+ # Read Invoke sshell file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationinvokesshellagg=$((durationinvokesshellagg+$measure))
+ done < durationinvokesshellagg.out
+
+ # Read sleep file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationsleepagg=$((durationsleepagg+$measure))
+ done < durationsleepagg.out
+
+ # Read Invoke GNU Parallel file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationinvokegnuparallelagg=$((durationinvokegnuparallelagg+$measure))
+ done < durationinvokegnuparallelagg.out
+
+ durationinvokesshellavgsecs=$((durationinvokesshellagg / $3))
+ #durationinvokesshellavgmsecs=$((durationinvokesshellagg / $3))
+ durationinvokesgnuparallelavgsecs=$((durationinvokegnuparallelagg / $3))
+ durationsleepavgsecs=$((durationsleepsagg / $3))
  durationoverallavg=$((durationoverall / $3))
 
- durationremaininvoke=$(($durationoverallavg-$durationsleepavgsecs-$durationinvokesshellavgsecs))
+ #durationremaininvoke=$(($durationoverallavg-$durationsleepavgsecs-$durationinvokesshellavgsecs))
 
  echo ===============================================
  echo "Thumbnails NO OP - Performance Breakdown Summary"
 
- echo "duration Sleep: $durationsleepavgsecs s"
- echo "duration invoke sshell latency: $durationinvokesshellavgmsecs ms"
- echo "duration remain invoke latency: $durationremaininvoke s"
- echo "Overall duration: $durationoverallavg s"
+ echo "Average duration Sleep: $durationsleepavgsecs s"
+ echo "Average duration invoke sshell latency: $durationinvokesshellavgsecs s"
+ echo "Average duration invoke GNU Parallel latency: $durationinvokegnuparallelavgsecs s"
+ echo "Average Overall duration: $durationoverallavg s"
+
+fi
 
 }
 

@@ -228,11 +228,7 @@ runthumbnailsnoop()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-	for iter in $(seq 1 $NBRUNS)
-        do
-	  echo run $iter
-	  cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "clock3=\$(date +%s%N) ; sshell \" clock4=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock5=\\\$(date +%s%N) ; durationinvokesshell=\\\$(expr \\\$clock4 - \$clock3) ; durationsleep=\\\$(expr \\\$clock5 - \\\$clock4) ; echo durationinvokesshell = \\\$durationinvokesshell ; echo durationsleep = \\\$durationsleep \""
-        done
+	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "clock3=\$(date +%s%N) ; sshell \" clock4=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock5=\\\$(date +%s%N) ; durationinvokesshell=\\\$(expr \\\$clock4 - \$clock3) ; durationsleep=\\\$(expr \\\$clock5 - \\\$clock4) ; echo durationinvokesshell = \\\$durationinvokesshell ; echo durationsleep = \\\$durationsleep \""
 	clock2=`date +%s`
 
 	durationthumbnails=`expr $clock2 - $clock1`
@@ -523,10 +519,16 @@ for ijob in "${njobs[@]}"
 do
   echo =================================
   echo $ijob parallel jobs
-  #runthumbnailsnoop $ijob 
-  #runthumbnailsnoop $ijob > runthumbnailsnoop.$ijob.njobs.out
-  #bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.out $ijob $NBRUNS
-  #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
+  touch runthumbnailsnoop.perfbreak.$ijob.njobs.out 
+  for irun in $(seq 1 $NBRUNS)
+  do
+    #runthumbnailsnoop $ijob 
+    runthumbnailsnoop $ijob $irun > runthumbnailsnoop.$ijob.njobs.$irun.nbruns.out
+    bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.$irun.nbruns.out $ijob $irun $NBRUNS > runthumbnailsnoop.perfbreak.$ijob.nbjobs.$irun.nbruns.out
+    #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
+  done
+  cat runthumbnailsnoop.perfbreak.* > runthumbnailsnoop.perfbreak.$ijob.njobs.out
+  bash examples/perfbreakdown.sh runthumbnailsnoop.perfbreak.$ijob.njobs.out $ijob $NBRUNS
 done
 echo ""
 echo =================================
