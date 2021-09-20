@@ -206,15 +206,22 @@ buildperfbreakdownthumbnailsnoopsummary() {
  echo 2nd arg: $2
  echo 3rd arg: $3
 
- cat $1 | grep durationinvokesshellagg > durationinvokesshellagg.out
+ cat $1 | grep durationinvokesshellmsecsagg > durationinvokesshellmsecsagg.out
+ cat $1 | grep durationinvokesshellsecsagg > durationinvokesshellsecsagg.out
  cat $1 | grep durationsleepagg > durationsleepagg.out
  cat $1 | grep durationinvokegnuparallelagg > durationinvokegnuparallelagg.out
 
- # Read Invoke sshell file 
+ # Read Invoke sshell msecs file 
  while read l; do
    measure=$(echo ${l} | awk '{print $3}')
-   durationinvokesshellagg=$((durationinvokesshellagg+$measure))
- done < durationinvokesshellagg.out
+   durationinvokesshellmsecsagg=$((durationinvokesshellmsecsagg+$measure))
+ done < durationinvokesshellmsecsagg.out
+
+ # Read Invoke sshell secs file 
+ while read l; do
+   measure=$(echo ${l} | awk '{print $3}')
+   durationinvokesshellsecsagg=$((durationinvokesshellsecsagg+$measure))
+ done < durationinvokesshellsecsagg.out
 
  # Read sleep file 
  while read l; do
@@ -228,7 +235,8 @@ buildperfbreakdownthumbnailsnoopsummary() {
    durationinvokegnuparallelagg=$((durationinvokegnuparallelagg+$measure))
  done < durationinvokegnuparallelagg.out
 
- durationinvokesshellavgsecs=$((durationinvokesshellagg / $3))
+ durationinvokesshellavgmsecs=$((durationinvokesshellmsecsagg / $3))
+ durationinvokesshellavgsecs=$((durationinvokesshellsecsagg / $3))
  #durationinvokesshellavgmsecs=$((durationinvokesshellagg / $3))
  durationinvokesgnuparallelavgsecs=$((durationinvokegnuparallelagg / $3))
  durationsleepavgsecs=$((durationsleepsagg / $3))
