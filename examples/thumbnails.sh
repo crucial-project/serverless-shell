@@ -211,15 +211,15 @@ runthumbnailsnoop()
 	echo ""
 	echo "Run Thumbnails w/o any operation (NO 0P) "
 
-	rm -f $THUMBNAILSEC2PATH/THUMBNAIL*
+	#rm -f $THUMBNAILSEC2PATH/THUMBNAIL*
 
 	#ls $THUMBNAILSEC2PATH | head -20 > thumbnailssubset.out
 
 	echo "Number of elements in EFS thumbnails repository before operation: "
-	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
-	cat numelementsthumbnails.out
+	#ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+	#cat numelementsthumbnails.out
 
-	ls $THUMBNAILSEC2PATH > thumbnails.out
+	#ls $THUMBNAILSEC2PATH > thumbnails.out
 
 	echo ""
 	echo ""
@@ -228,7 +228,7 @@ runthumbnailsnoop()
 	NBJOBS=$1
 
 	clock1=`date +%s`
-	cat thumbnails.out | parallel -j$NBJOBS -I,, --env sshell "clock3=\$(date +%s%N) ; sshell \" clock4=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock5=\\\$(date +%s%N) ; durationinvokesshell=\\\$(expr \\\$clock4 - \$clock3) ; durationsleep=\\\$(expr \\\$clock5 - \\\$clock4) ; echo durationinvokesshell = \\\$durationinvokesshell ; echo durationsleep = \\\$durationsleep \""
+	cat thumbnailsnoop.out | parallel -j$NBJOBS -I,, --env sshell "clock3=\$(date +%s%N) ; sshell \" clock4=\\\$(date +%s%N) ; echo ,, > /dev/null ; sleep 10 ; clock5=\\\$(date +%s%N) ; durationinvokesshell=\\\$(expr \\\$clock4 - \$clock3) ; durationsleep=\\\$(expr \\\$clock5 - \\\$clock4) ; echo durationinvokesshell = \\\$durationinvokesshell ; echo durationsleep = \\\$durationsleep \""
 	clock2=`date +%s`
 
 	durationthumbnails=`expr $clock2 - $clock1`
@@ -239,21 +239,21 @@ runthumbnailsnoop()
 	echo DURATION THUMBNAILS : $durationthumbnails seconds
 	echo durationoverall = $durationthumbnails
 
-	echo "Check EFS thumbnails repository"
+	#echo "Check EFS thumbnails repository"
 
-	echo "Number of elements in EFS thumbnails repository after operation: "
-	ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
+	#echo "Number of elements in EFS thumbnails repository after operation: "
+	#ls $THUMBNAILSEC2PATH | wc -l > numelementsthumbnails.out
 	cat numelementsthumbnails.out
 
 	#ls $THUMBNAILSEC2PATH
 
-	echo Check number of original pictures in EFS/thumbnails directory
-	ls $THUMBNAILSEC2PATH/ | grep -v THUMB | wc -l
-	echo Check number of thumbnail pictures in EFS/thumbnails directory
-	ls $THUMBNAILSEC2PATH/ | grep THUMB | wc -l
+	#echo Check number of original pictures in EFS/thumbnails directory
+	#ls $THUMBNAILSEC2PATH/ | grep -v THUMB | wc -l
+	#echo Check number of thumbnail pictures in EFS/thumbnails directory
+	#ls $THUMBNAILSEC2PATH/ | grep THUMB | wc -l
 
-	echo "CHECK AWS LAMBDA /tmp"
-	sshell "ls -alsth /tmp"
+	#echo "CHECK AWS LAMBDA /tmp"
+	#sshell "ls -alsth /tmp"
 	#sshell "rm -rf /tmp/*"
 }
 
@@ -469,7 +469,8 @@ runthumbnailsasync2()
 cleanup
 
 # Run thumbnails with a range of #jobs
-#njobs=(10 20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
+njobs=(20 30 40 50 60 70 80 90 100 200 300 400 500 600 700 800)
+#njobs=(600 700 800)
 cksize=(100 200 400 600 800)
 
 echo Run thumbnails with a range of #njobs
@@ -515,20 +516,27 @@ echo =================================
 echo =================================
 echo ""
 echo Thumbnails NO OP version 
+rm thumbnailsnoop.out
+touch thumbnailsnoop.out
+for itertest in $(seq 1 1000); do echo $itertest ;  echo TEST >> thumbnailsnoop.out ; done
+
+source examples/perfbreakdown.sh
 for ijob in "${njobs[@]}"
 do
   echo =================================
+  rm duration*
   echo $ijob parallel jobs
   touch runthumbnailsnoop.perfbreak.$ijob.njobs.out 
   for irun in $(seq 1 $NBRUNS)
   do
-    #runthumbnailsnoop $ijob 
+    #runthumbnailsnoop $ijob $irun 
     runthumbnailsnoop $ijob $irun > runthumbnailsnoop.$ijob.njobs.$irun.nbruns.out
-    bash examples/perfbreakdown.sh runthumbnailsnoop.$ijob.njobs.$irun.nbruns.out $ijob $irun $NBRUNS > runthumbnailsnoop.perfbreak.$ijob.nbjobs.$irun.nbruns.out
+    buildperfbreakdownthumbnailsnoop runthumbnailsnoop.$ijob.njobs.$irun.nbruns.out $ijob $irun $NBRUNS | tee runthumbnailsnoop.perfbreak.nbjobs.$ijob.nbruns.$irun.out
+    #buildperfbreakdownthumbnailsnoop runthumbnailsnoop.$ijob.njobs.$irun.nbruns.out $ijob $irun $NBRUNS 
     #bash examples/perfbreakdown.sh runthumbnails.$i.njobs.out $i > thumbnails.perfbreakdown.$i.njobs.out
   done
-  cat runthumbnailsnoop.perfbreak.* > runthumbnailsnoop.perfbreak.$ijob.njobs.out
-  bash examples/perfbreakdown.sh runthumbnailsnoop.perfbreak.$ijob.njobs.out $ijob $NBRUNS
+  cat runthumbnailsnoop.perfbreak.nbjobs.$ijob.nbruns.* > runthumbnailsnoop.perfbreak.$ijob.nbjobs.out
+  buildperfbreakdownthumbnailsnoopavg runthumbnailsnoop.perfbreak.$ijob.nbjobs.out $ijob $NBRUNS
 done
 echo ""
 echo =================================
