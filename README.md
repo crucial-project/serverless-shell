@@ -18,6 +18,10 @@ Work is in progress to include other services (e.g., knative).
 	source ./serverless-shell-2.0/utils.sh
  	sshell ls # check that everything works
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/dCoEaE4UXHDUu4XUlf1DqcQQj.svg)](https://asciinema.org/a/dCoEaE4UXHDUu4XUlf1DqcQQj)
+
 ## Usage
 
 The syntax of the serverless shell is straightforward.
