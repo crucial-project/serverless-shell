@@ -30,6 +30,9 @@ pipe(){
     java org.crucial.dso.client.Interpreter -s ${SERVER} pipe $@
 }
 
+rdv(){
+    java org.crucial.dso.client.Interpreter -s ${SERVER} rdv $@
+}
 
 export -f counter
 export -f list
@@ -37,3 +40,4 @@ export -f map
 export -f treemap
 export -f barrier
 export -f pipe
+export -f rdv
