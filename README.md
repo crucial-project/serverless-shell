@@ -1,11 +1,13 @@
-# Serverless shell
+# The Serverless Shell
 
-The serverless shell brings the power of shell scripting to the serverless world.
+The Serverless Shell (`sshell`) brings the power of shell scripting to the serverless world.
 It is particularly convenient to mine large public data sets available on the internet.
-A typical use case is to download a data sample on the local machine, write the code logic using this sample then execute the same code massively in parallel in a serverless infrastructure.
+A typical use case is to download a data sample on the local machine, write the code logic using this sample, then execute the same code massively in parallel in a serverless infrastructure.
 
-Currently, only AWS Lambda is supported as a servrless backend.
-Work is in progress to include other services (e.g., knative).
+Currently, only AWS Lambda is supported as a serverless backend.
+Work is in progress to include other platforms.
+
+A white paper describing `sshell` is aivalable [online](https://drive.google.com/file/d/1D7h0hoMep0W73XV_EdXPSEWUxpToTtfG/view?usp=sharing).
 
 ## Installation
 
