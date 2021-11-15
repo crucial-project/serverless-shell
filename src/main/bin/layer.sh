@@ -48,15 +48,18 @@ then
         --license-info "Apache" \
         --content S3Bucket=${AWS_S3_BUCKET},S3Key=${AWS_S3_KEY} \
         --compatible-runtimes java11 | grep "\"Version\":" | awk -F: '{print $2}' | sed s/[\ ,]//g)
-    # FIXME
+    # grant public access 
     aws lambda add-layer-version-permission \
     	--layer-name serverless-bash \
-    	--statement-id rights \
+    	--statement-id make-public \
     	--version-number ${version} \
     	--principal '*' \
     	--action lambda:GetLayerVersion \
     	--output text \
-    	--region=${AWS_REGION}
+    	--region=us-east-1
+    version=$(aws lambda list-layer-versions --layer-name arn:aws:lambda:us-east-1:667743079194:layer:serverless-bash --region ${AWS_REGION} --query 'LayerVersions[0].LayerVersionArn' | awk -F: '{print $8}'| sed s/\"//g )
+    # edit properties template
+    sed -i s,layer.version=[0-9]*,layer.version=${version},g ${DIR}/config.properties.tmpl
 elif [[ "$1" == "-delete" ]]
 then
     echo "NYI"
