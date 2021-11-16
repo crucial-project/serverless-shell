@@ -52,4 +52,4 @@ The data types currently available are listed under `serverless-shell/src/main/b
 
 ## Distributed File System
 
-It is possible to mount a distributed file storage to `sshell`, which is AWS EFS. In order to perform the mount, the user needs to fill the fields `aws.efs.accesspointid` and `aws.efs.localmountpath` in `config.properties`. Then the script `deploy.sh` will perform all the necessary configurations.
+It is possible to mount a distributed file storage (currently AWS EFS) to `sshell`. In order to perform the mount, the user needs to fill the fields `aws.efs.accesspointid` and `aws.efs.localmountpath` in `config.properties`. The script `deploy.sh` will check if the field `aws.efs.accesspointid` is filled, then it will perform all the necessary configurations so that AWS EFS can be used by `sshell` as soon as it is deployed.
