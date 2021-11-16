@@ -49,3 +49,7 @@ To check that everything works fine, you may run `examples/tests-stateful.sh`.
 The syntax to access a data type is of the form `type -n name operation`, where `type` is the data type and `name` its storage key in the DSO layer.
 For instance, `counter -n my_counter -1 1` increment by 1 the counter named `my_counter`.
 The data types currently available are listed under `serverless-shell/src/main/bin/aliases.sh`.  
+
+## Distributed File System
+
+It is possible to mount a distributed file storage to `sshell`, which is AWS EFS. In order to perform the mount, the user needs to fill the fields `aws.efs.accesspointid` and `aws.efs.localmountpath` in `config.properties`. Then the script `deploy.sh` will perform all the necessary configurations.
