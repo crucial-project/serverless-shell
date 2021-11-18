@@ -11,7 +11,7 @@ A white paper describing `sshell` is available [online](https://drive.google.com
 
 ## Installation
 
-    wget https://github.com/crucial-project/serverless-shell/releases/download/2.0/serverless-shell-2.0-bin.tar.gz 
+    wget https://github.com/crucial-project/serverless-shell/releases/download/2.1/serverless-shell-2.0-bin.tar.gz 
     tar zxvf serverless-shell-2.0-bin.tar.gz
 	export ACCOUNT=%AWS_ACCOUNT_ID%
 	export ROLE_NAME=%AWS_IAM_ROLE_NAME% # the role must have access to AWS Lambda
