@@ -7,7 +7,7 @@ A typical use case is to download a data sample on the local machine, write the 
 Currently, only AWS Lambda is supported as a serverless backend.
 Work is in progress to include other platforms.
 
-A white paper describing `sshell` is aivalable [online](https://drive.google.com/file/d/1D7h0hoMep0W73XV_EdXPSEWUxpToTtfG/view?usp=sharing).
+A white paper describing `sshell` is available [online](https://drive.google.com/file/d/1D7h0hoMep0W73XV_EdXPSEWUxpToTtfG/view?usp=sharing).
 
 ## Installation
 
