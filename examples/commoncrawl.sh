@@ -17,7 +17,7 @@ curl -s ${CCBASE}/crawl-data/${CCMAIN}/wat.paths.gz \
 
 average(){
     while read l; do
-	sshell "curl -s ${RANGE} ${CCBASE}/${l} | 2>/dev/null zcat -q | grep ^Content-Length " &
+	sshell "curl -s ${RANGE} ${CCBASE}/${l} 2>/dev/null | zcat -q | grep ^Content-Length " &
     done < ${TMP_DIR}/index | awk '{ sum += $2 } END { if (NR > 0) print int(sum / NR) }'
 }
     
