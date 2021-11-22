@@ -26,7 +26,7 @@ average(){
 average_stateful(){
     sshell "counter -n average reset"
     while read l; do
-	sshell "counter -n average increment -i \$(curl -s ${RANGE} ${CCBASE}/${l} | 2>/dev/null zcat | grep ^Content-Length | awk '{ sum += \$2 } END { if (NR > 0) print int(sum / NR) }')" 1> /dev/null &
+	sshell "counter -n average increment -i \$(curl -s ${RANGE} ${CCBASE}/${l} 2>/dev/null | zcat | grep ^Content-Length | awk '{ sum += \$2 } END { if (NR > 0) print int(sum / NR) }')" 1> /dev/null &
     done < ${TMP_DIR}/index
     wait
     local lines=$(wc -l ${TMP_DIR}/index | awk '{print $1}')
