@@ -24,6 +24,12 @@ A white paper describing `sshell` is available [online](https://drive.google.com
 
 [![asciicast](https://asciinema.org/a/dCoEaE4UXHDUu4XUlf1DqcQQj.svg)](https://asciinema.org/a/dCoEaE4UXHDUu4XUlf1DqcQQj)
 
+## Video 
+
+Presentation of `sshell` at Middleware'21:
+
+https://www.youtube.com/watch?v=PFodHPlF0wE
+
 ## Usage
 
 The syntax of the serverless shell is straightforward.
