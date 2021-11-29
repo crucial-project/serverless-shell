@@ -30,6 +30,10 @@ Presentation of `sshell` at Middleware'21:
 
 https://www.youtube.com/watch?v=PFodHPlF0wE
 
+Slides of the video:
+
+https://docs.google.com/presentation/d/1I54PuDrdlzGc7y5FRAFknHAtxuM8lJwHUQOfBE5VzQY/edit?usp=sharing
+
 ## Usage
 
 The syntax of the serverless shell is straightforward.
