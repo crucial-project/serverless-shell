@@ -50,6 +50,13 @@ For instance, the `average` function in `commoncrawl.sh` evaluates the average w
 
 ## Stateful computation
 
+### Distributed File System
+
+It is possible to mount a distributed file system in `sshell`.
+To date, only AWS EFS is supported.
+To mount it, the user has to fill the fields `aws.efs.accesspointid` and `aws.efs.localmountpath` in `config.properties`.
+The script `deploy.sh` checks if such fields are present, and if so, it mounts the distributed file system where appropriate.
+
 ### Inter-process communication 
 
 Side effects when executing `sshell` are possible using a shared objects layer.
@@ -62,6 +69,3 @@ The syntax to access a data type is of the form `type -n name operation`, where 
 For instance, `counter -n my_counter -1 1` increment by 1 the counter named `my_counter`.
 The data types currently available are listed under `serverless-shell/src/main/bin/aliases.sh`.  
 
-### Distributed File System
-
-It is possible to mount a distributed file storage (currently AWS EFS) to `sshell`. In order to perform the mount, the user needs to fill the fields `aws.efs.accesspointid` and `aws.efs.localmountpath` in `config.properties`. The script `deploy.sh` will check if the field `aws.efs.accesspointid` is filled, then it will perform all the necessary configurations so that AWS EFS can be used by `sshell` as soon as it is deployed.
