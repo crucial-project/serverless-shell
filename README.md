@@ -38,7 +38,7 @@ https://docs.google.com/presentation/d/1I54PuDrdlzGc7y5FRAFknHAtxuM8lJwHUQOfBE5V
 
 The syntax of the serverless shell is straightforward.
 Use `sshell` followed by the command(s) to execute.
-It is also possible to pass a script file with `sshellf`.
+It is also possible to pass a script file with `sshell -f`.
 
 ## Examples
 
