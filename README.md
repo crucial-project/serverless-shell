@@ -15,10 +15,12 @@ A white paper describing `sshell` is available [online](https://drive.google.com
     tar zxvf serverless-shell-2.2-linux-bin.tar.gz
 	export ACCOUNT=%AWS_ACCOUNT_ID%
 	export ROLE_NAME=%AWS_IAM_ROLE_NAME% # the role must have access to AWS Lambda (e.g., AWSLambda_FullAccess)
-	cat serverless-shell-2.2/config.properties.tmpl | sed s,ACCOUNT,${ACCOUNT},g | sed s,ROLE_NAME,${ROLE_NAME},g > config.properties
+	export REGION=%AWS_REGION%
+	cat serverless-shell-2.2/config.properties.tmpl | sed s,ACCOUNT,${ACCOUNT},g | sed s,ROLE_NAME,${ROLE_NAME},g | sed s,REGION,${REGION},g > config.properties
 	export CONFIG_DIR=.; sed -i s,FUNCTION_ARN,$(./serverless-shell-2.2/deploy.sh -create | grep FunctionArn | awk '{print $2}' | sed s,[\"\,],,g),g config.properties
 	source ./serverless-shell-2.2/utils.sh
- 	sshell ls # check that everything works
+	sshell ls # check that everything works
+
 
 ## Demo
 
