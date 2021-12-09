@@ -52,7 +52,7 @@ For instance, the `average` function in `commoncrawl.sh` evaluates the average w
 
 ## Stateful computation
 
-### Distributed File System
+### Distributed file system
 
 It is possible to mount a distributed file system in `sshell`.
 To date, only AWS EFS is supported.
