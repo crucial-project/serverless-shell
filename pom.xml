@@ -19,7 +19,7 @@
         <version.aws.sdk.lambda.java>1.11.76</version.aws.sdk.lambda.java>
         <version.software.amazon.awssdk>2.15.26</version.software.amazon.awssdk>
         <version.apache.httpclient>4.5.13</version.apache.httpclient>
-        <version.gson>2.8.6</version.gson>
+        <version.gson>2.8.9</version.gson>
         <project.skip-native-image>true</project.skip-native-image>
     </properties>
 
